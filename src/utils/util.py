@@ -122,7 +122,7 @@ def preprocessing(image):
 
 
 def print_env_info(env: gym.Env) -> None:
-    print("=" * 20 + " Env Info " + "=" * 20)
+    print("=" * 12 + " Env Info " + "=" * 11)
     print(f"{ShellColor.COLOR_CYAN}Env id:{ShellColor.ENDC} {env.spec.id}")
     print(
         f"{ShellColor.COLOR_CYAN}Observation space size:{ShellColor.ENDC} {env.observation_space.shape}"
@@ -135,4 +135,4 @@ def print_env_info(env: gym.Env) -> None:
         print(
             f"{ShellColor.COLOR_CYAN}Action list:{ShellColor.ENDC} {env.env.get_action_meanings()}"
         )
-    print("=" * 50)
+    print("=" * 33)

@@ -1,8 +1,12 @@
 # %%
 import gymnasium as gym
+import torch
+
+print("gym version:[%s]" % (gym.__version__))
+print("Pytorch:[%s]" % (torch.__version__))
 
 from src.agents.dqn_agent import DQNAgent
-from src.utils.util import create_config, print_env_info
+from src.utils.util import print_env_info
 
 #%%
 # env = gym.make("CartPole-v1", render_mode="human")
@@ -42,7 +46,9 @@ for episode in range(agent.config.n_episodes):
 
     if (episode == 0) or (((episode + 1) % 10) == 0):
         print(
-            f"episode: {episode + 1} | ep_ret: {ep_ret:.4f} | ep_len: {ep_len} | epsilon: {agent.epsilon:.4f}"
+            f"episode: {episode + 1} | ep_ret: {ep_ret:.4f} | epsilon: {agent.epsilon:.4f}"
         )
 
 env.close()
+
+# %%

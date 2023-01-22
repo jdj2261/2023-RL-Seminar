@@ -30,14 +30,17 @@ class Agent(metaclass=ABCMeta):
     def update(self):
         raise NotImplementedError
 
+    # @abstractmethod
+    # TODO (save / load file)
+    def save_file(self, path: str):
+        pass
+
+    # @abstractmethod
+    def load_file(self, path: str):
+        pass
+
     def decay_epsilon(self):
         self.epsilon = max(self.config.epsilon_end, self.epsilon - self.epsilon_decay)
-
-    def save_file(self, path: str):
-        raise NotImplementedError
-
-    def load_file(self, path: str):
-        raise NotImplementedError
 
     @staticmethod
     def _get_config(config: dict) -> Config:
