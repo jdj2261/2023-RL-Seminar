@@ -16,6 +16,7 @@ class DQNAgent(Agent):
         action_space_dims: int,
         config: dict = {},
         is_fixed_seed: bool = False,
+        is_atari: bool = True,
     ) -> None:
         super().__init__(obs_space_dims, action_space_dims, config)
 
@@ -23,13 +24,18 @@ class DQNAgent(Agent):
         if is_fixed_seed:
             np.random.seed(self.config.seed)
 
-        # set Q Network (CartPole)
-        self.q_target = Model(obs_space_dims, action_space_dims).to(self.config.device)
-        self.q_predict = Model(obs_space_dims, action_space_dims).to(self.config.device)
-
-        # TODO (atari or mujoco)
-        # self.q_target = CNNModel(obs_space_dims, action_space_dims)
-        # self.q_predict = CNNModel(obs_space_dims, action_space_dims)
+        if not is_atari:
+            # set Q Network (CartPole)
+            self.q_target = Model(obs_space_dims, action_space_dims).to(
+                self.config.device
+            )
+            self.q_predict = Model(obs_space_dims, action_space_dims).to(
+                self.config.device
+            )
+        else:
+            # TODO (atari or mujoco)
+            self.q_target = CNNModel(obs_space_dims, action_space_dims)
+            self.q_predict = CNNModel(obs_space_dims, action_space_dims)
 
         # Memory Type
         if "priority" in self.config.memory_type:

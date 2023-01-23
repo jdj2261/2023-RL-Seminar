@@ -2,7 +2,6 @@
 
 [![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENSE) [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-<img src="imgs/logo.png" width="300" height="70"/>
 
 PyTorch Implementations of **deep reinforcement learning** algorithms
 
