@@ -8,3 +8,4 @@ dist
 docs/build
 docs_backup
 src/pymanopt
+samples

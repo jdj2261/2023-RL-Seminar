@@ -1,9 +1,10 @@
 # %%
 import gymnasium as gym
 import torch
+from src.utils.util import ShellColor as sc
 
-print("gym version:[%s]" % (gym.__version__))
-print("Pytorch:[%s]" % (torch.__version__))
+print(f"{sc.COLOR_PURPLE}Gym version:{sc.ENDC} {gym.__version__}")
+print(f"{sc.COLOR_PURPLE}Pytorch version:{sc.ENDC} {torch.__version__}")
 
 from src.agents.dqn_agent import DQNAgent
 from src.utils.util import print_env_info
@@ -12,7 +13,6 @@ from src.utils.util import print_env_info
 # env = gym.make("CartPole-v1", render_mode="human")
 env = gym.make("ALE/Enduro-v5")
 print_env_info(env=env)
-print(env.observation_space.shape)
 # %%
 agent = DQNAgent(
     obs_space_dims=env.observation_space.shape[0],
@@ -21,6 +21,7 @@ agent = DQNAgent(
 )
 print(agent.config)
 
+# Error!!
 # %%
 for episode in range(agent.config.n_episodes):
     obs, info = env.reset()

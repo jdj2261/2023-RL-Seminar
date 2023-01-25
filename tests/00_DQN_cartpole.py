@@ -1,9 +1,10 @@
 # %%
 import gymnasium as gym
 import torch
+from src.utils.util import ShellColor as sc
 
-print("gym version:[%s]" % (gym.__version__))
-print("Pytorch:[%s]" % (torch.__version__))
+print(f"{sc.COLOR_PURPLE}Gym version:{sc.ENDC} {gym.__version__}")
+print(f"{sc.COLOR_PURPLE}Pytorch version:{sc.ENDC} {torch.__version__}")
 
 from src.agents.dqn_agent import DQNAgent
 from src.utils.util import print_env_info
@@ -14,7 +15,9 @@ env = gym.make("CartPole-v1")
 print_env_info(env=env)
 # %%
 agent = DQNAgent(
-    obs_space_dims=env.observation_space.shape[0], action_space_dims=env.action_space.n
+    obs_space_dims=env.observation_space.shape[0],
+    action_space_dims=env.action_space.n,
+    is_atari=False,
 )
 print(agent.config)
 
