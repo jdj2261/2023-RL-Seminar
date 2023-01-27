@@ -25,7 +25,7 @@ class CNNModel(nn.Module):
     def __init__(self, input_shape: tuple, action_space_dims: int):
         assert action_space_dims > 0
 
-        print(f"Input shape: {input_shape}")
+        print(f"Model Initializing... An input shape is {input_shape}")
         obs_space_dims = input_shape[0]
         h, w = input_shape[1], input_shape[2]
         super(CNNModel, self).__init__()

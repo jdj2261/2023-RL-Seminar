@@ -77,6 +77,7 @@ class DQNAgent(Agent):
 
         # Sample random minibatch of transitions
         experiences = self.memory.sample(self.config.batch_size)
+
         (
             state_batch,
             action_batch,
@@ -84,11 +85,13 @@ class DQNAgent(Agent):
             next_state_batch,
             done_batch,
         ) = self._get_tensor_batch_from_experiences(experiences)
+
         q_values = self.q_predict(state_batch).gather(1, action_batch)
         next_q_values = self.q_target(next_state_batch).max(1)[0].detach()
         expected_q_values = reward_batch + self.config.gamma * next_q_values * (
             1 - done_batch
         )
+
         loss = self.loss_fn(q_values, expected_q_values.unsqueeze(1))
 
         self.optimizer.zero_grad()
