@@ -20,14 +20,15 @@ env = gym.make("Breakout-v0")
 print_env_info(env=env)
 
 # %%
-obs_space_shape = (1, 84, 84)
+obs_space_shape = (1, 42, 42)
 agent = DQNAgent(
     obs_space_shape=obs_space_shape,
     action_space_dims=env.action_space.n,
     is_atari=True,
 )
 agent.config.batch_size = 32
-agent.config.n_episodes = 1000
+agent.config.n_episodes = 10000
+agent.config.memory_capacity = 350000
 print(agent.config)
 
 # obs = env.reset()
@@ -66,7 +67,7 @@ for episode in range(agent.config.n_episodes):
     obs = env.reset()
     # obs = np.transpose(np.array(obs), (2, 0, 1))
     # print(obs.shape)
-    pre_processed_obs = get_preprocessed_img(obs)
+    pre_processed_obs = get_preprocessed_img(obs, 42, 42)
     state = np.stack(
         (
             pre_processed_obs,
@@ -86,8 +87,8 @@ for episode in range(agent.config.n_episodes):
         action = agent.get_action(state)
 
         next_obs, reward, done, info = env.step(action)
-
-        next_pre_processed_obs = get_preprocessed_img(next_obs)
+        # reward = 1 if reward > 0 else -0.1
+        next_pre_processed_obs = get_preprocessed_img(next_obs, 42, 42)
         next_state = np.stack(
             (
                 next_pre_processed_obs,
@@ -106,7 +107,7 @@ for episode in range(agent.config.n_episodes):
 
         agent.store_transition(state, action, reward, next_state, done)
 
-        if len(agent.memory.buffer) > 10:
+        if len(agent.memory.buffer) > 10000:
             agent.update()
 
         state = next_state

@@ -14,8 +14,9 @@ def create_config() -> dict:
     config["epsilon_start"] = 0.95
     config["epsilon_end"] = 0.01
     config["seed"] = 0
+    config["target_update"] = 4
     config["memory_type"] = "uniform"
-    config["memory_capacity"] = 100000
+    config["memory_capacity"] = 350000
     return config
 
 
@@ -24,14 +25,14 @@ class Config:
     n_episodes = 1000
     batch_size: int = 64
     gamma: float = 0.99
-    lr: float = 0.0005
+    lr: float = 0.005
     epsilon_start: float = 0.95
     epsilon_end: float = 0.01
     seed: int = 0
-    target_update: int = 5
+    target_update: int = 4
 
     memory_type: str = "uniform"  # "priority"
-    memory_capacity: int = 100000
+    memory_capacity: int = 350000
 
     device: str = "cpu"
 
@@ -111,15 +112,18 @@ def get_device():
     return device
 
 
-def get_preprocessed_img(image):
+def get_preprocessed_img(image, heigt, width):
     """
     Process image crop resize, grayscale and normalize the images
     """
     # print(image[0])
-    preprocessed_img = cv2.cvtColor(cv2.resize(image, (84, 84)), cv2.COLOR_BGR2GRAY)
+    preprocessed_img = cv2.cvtColor(
+        cv2.resize(image, (heigt, width), interpolation=cv2.INTER_AREA),
+        cv2.COLOR_BGR2GRAY,
+    )
     # preprocessed_img = np.expand_dims(preprocessed_img, -1)
     # preprocessed_img = np.transpose(preprocessed_img, (2, 0, 1)).astype(np.float32)
-    preprocessed_img = preprocessed_img.astype(np.float32) / 255
+    preprocessed_img = preprocessed_img.astype(np.uint8)
     return preprocessed_img
 
 

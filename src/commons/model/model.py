@@ -42,9 +42,13 @@ class CNNModel(nn.Module):
             nn.ReLU(),
         )
 
-        convh, convw = self.get_conv2d_width_size(h, w, kernel_size=8, stride=4)
-        convh, convw = self.get_conv2d_width_size(convh, convw, kernel_size=4, stride=2)
-        convh, convw = self.get_conv2d_width_size(convh, convw, kernel_size=3, stride=1)
+        convh, convw = self.get_conv2d_screen_size(h, w, kernel_size=8, stride=4)
+        convh, convw = self.get_conv2d_screen_size(
+            convh, convw, kernel_size=4, stride=2
+        )
+        convh, convw = self.get_conv2d_screen_size(
+            convh, convw, kernel_size=3, stride=1
+        )
 
         self.fc = nn.Sequential(
             nn.Linear(convh * convw * 32, 256),
@@ -54,7 +58,7 @@ class CNNModel(nn.Module):
 
         self.apply(self._init_weights)
 
-    def get_conv2d_width_size(
+    def get_conv2d_screen_size(
         self, h: int, w: int, kernel_size: int = 1, stride: int = 1, padding: int = 0
     ) -> tuple:
         """
@@ -70,6 +74,7 @@ class CNNModel(nn.Module):
         x = self.features(x)
         x = torch.flatten(x, start_dim=1)
         x = self.fc(x)
+        x /= 255.0
         return x
 
     def _init_weights(self, moodule):

@@ -35,10 +35,10 @@ class DQNAgent(Agent):
         else:
             # TODO (atari or mujoco)
             self.q_target = CNNModel(obs_space_shape, action_space_dims).to(
-                self.config.device
+                self.config.device, non_blocking=True
             )
             self.q_predict = CNNModel(obs_space_shape, action_space_dims).to(
-                self.config.device
+                self.config.device, non_blocking=True
             )
 
         # Memory Type
@@ -65,7 +65,7 @@ class DQNAgent(Agent):
                     state, device=self.config.device, dtype=torch.float32
                 ).unsqueeze(dim=0)
                 q_values = self.q_predict(state)
-                action = q_values.max(1)[1].item()
+                action = torch.argmax(q_values).item()
         return action
 
     def store_transition(self, state, action, reward, next_state, done) -> None:
@@ -87,7 +87,7 @@ class DQNAgent(Agent):
         ) = self._get_tensor_batch_from_experiences(experiences)
 
         q_values = self.q_predict(state_batch).gather(1, action_batch)
-        next_q_values = self.q_target(next_state_batch).max(1)[0].detach()
+        next_q_values = self.q_target(next_state_batch).max(dim=1).values.detach()
         expected_q_values = reward_batch + self.config.gamma * next_q_values * (
             1 - done_batch
         )
@@ -102,7 +102,7 @@ class DQNAgent(Agent):
         states = torch.tensor(
             [e.state for e in experiences if e is not None],
             device=self.config.device,
-            dtype=torch.float,
+            dtype=torch.float32,
         )
 
         actions = torch.tensor(
@@ -112,13 +112,13 @@ class DQNAgent(Agent):
         rewards = torch.tensor(
             [e.reward for e in experiences if e is not None],
             device=self.config.device,
-            dtype=torch.float,
+            dtype=torch.float32,
         )
 
         next_states = torch.tensor(
             [e.next_state for e in experiences if e is not None],
             device=self.config.device,
-            dtype=torch.float,
+            dtype=torch.float32,
         )
 
         dones = torch.tensor(
@@ -126,4 +126,5 @@ class DQNAgent(Agent):
             device=self.config.device,
             dtype=torch.uint8,
         )
+
         return states, actions, rewards, next_states, dones
