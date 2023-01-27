@@ -111,14 +111,16 @@ def get_device():
     return device
 
 
-def preprocessing(image):
-    image_data = cv2.cvtColor(cv2.resize(image, (84, 84)), cv2.COLOR_BGR2GRAY)
-    image_data[image_data > 0] = 255
-    image_data = np.reshape(image_data, (84, 84, 1))
-    image_tensor = image_data.transpose(2, 0, 1)
-    image_tensor = image_tensor.astype(np.float32)
-    image_tensor = torch.from_numpy(image_tensor)
-    return image_tensor
+def get_preprocessed_img(image):
+    """
+    Process image crop resize, grayscale and normalize the images
+    """
+    # print(image[0])
+    preprocessed_img = cv2.cvtColor(cv2.resize(image, (84, 84)), cv2.COLOR_BGR2GRAY)
+    # preprocessed_img = np.expand_dims(preprocessed_img, -1)
+    # preprocessed_img = np.transpose(preprocessed_img, (2, 0, 1)).astype(np.float32)
+    preprocessed_img = preprocessed_img.astype(np.float32) / 255
+    return preprocessed_img
 
 
 def print_env_info(env: gym.Env) -> None:

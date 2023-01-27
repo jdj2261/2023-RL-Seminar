@@ -5,11 +5,11 @@ from src.utils.util import Config, get_device
 class Agent(metaclass=ABCMeta):
     def __init__(
         self,
-        obs_space_dims: int,
+        obs_space_shape: tuple,
         action_space_dims: int,
         config: dict,
     ) -> None:
-        self.obs_space_dims = obs_space_dims
+        self.obs_space_shape = obs_space_shape
         self.action_space_dims = action_space_dims
         self.config = self._get_config(config)
 

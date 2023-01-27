@@ -12,13 +12,13 @@ from src.commons.model import CNNModel, Model
 class DQNAgent(Agent):
     def __init__(
         self,
-        obs_space_dims: int,
+        obs_space_shape: tuple,
         action_space_dims: int,
         config: dict = {},
         is_fixed_seed: bool = False,
         is_atari: bool = True,
     ) -> None:
-        super().__init__(obs_space_dims, action_space_dims, config)
+        super().__init__(obs_space_shape, action_space_dims, config)
 
         # set seed number
         if is_fixed_seed:
@@ -26,16 +26,20 @@ class DQNAgent(Agent):
 
         if not is_atari:
             # set Q Network (CartPole)
-            self.q_target = Model(obs_space_dims, action_space_dims).to(
+            self.q_target = Model(obs_space_shape, action_space_dims).to(
                 self.config.device
             )
-            self.q_predict = Model(obs_space_dims, action_space_dims).to(
+            self.q_predict = Model(obs_space_shape, action_space_dims).to(
                 self.config.device
             )
         else:
             # TODO (atari or mujoco)
-            self.q_target = CNNModel(obs_space_dims, action_space_dims)
-            self.q_predict = CNNModel(obs_space_dims, action_space_dims)
+            self.q_target = CNNModel(obs_space_shape, action_space_dims).to(
+                self.config.device
+            )
+            self.q_predict = CNNModel(obs_space_shape, action_space_dims).to(
+                self.config.device
+            )
 
         # Memory Type
         if "priority" in self.config.memory_type:
@@ -80,7 +84,6 @@ class DQNAgent(Agent):
             next_state_batch,
             done_batch,
         ) = self._get_tensor_batch_from_experiences(experiences)
-
         q_values = self.q_predict(state_batch).gather(1, action_batch)
         next_q_values = self.q_target(next_state_batch).max(1)[0].detach()
         expected_q_values = reward_batch + self.config.gamma * next_q_values * (

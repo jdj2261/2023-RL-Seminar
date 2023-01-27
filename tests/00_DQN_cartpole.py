@@ -13,9 +13,10 @@ from src.utils.util import print_env_info
 # env = gym.make("CartPole-v1", render_mode="human")
 env = gym.make("CartPole-v1")
 print_env_info(env=env)
+env.observation_space.shape
 # %%
 agent = DQNAgent(
-    obs_space_dims=env.observation_space.shape[0],
+    obs_space_shape=env.observation_space.shape,
     action_space_dims=env.action_space.n,
     is_atari=False,
 )
