@@ -23,37 +23,40 @@ class Model(nn.Module):
 
 class CNNModel(nn.Module):
     def __init__(self, input_shape: tuple, action_space_dims: int):
-        super().__init__()
         assert action_space_dims > 0
+
+        print(f"Input shape: {input_shape}")
         obs_space_dims = input_shape[0]
         h, w = input_shape[1], input_shape[2]
+        super(CNNModel, self).__init__()
 
-        print(input_shape)
         self.features = nn.Sequential(
-            nn.Conv2d(obs_space_dims, 32, kernel_size=8, stride=4),
+            nn.Conv2d(obs_space_dims, 24, kernel_size=8, stride=4),
             # nn.BatchNorm2d(32),
             nn.ReLU(),
-            nn.Conv2d(32, 64, kernel_size=4, stride=2),
+            nn.Conv2d(24, 32, kernel_size=4, stride=2),
             # nn.BatchNorm2d(64),
             nn.ReLU(),
-            nn.Conv2d(64, 64, kernel_size=3, stride=1),
+            nn.Conv2d(32, 32, kernel_size=3, stride=1),
             # nn.BatchNorm2d(64),
             nn.ReLU(),
         )
 
-        convh, convw = self.conv2d_size_calc(h, w, kernel_size=8, stride=4)
-        convh, convw = self.conv2d_size_calc(convh, convw, kernel_size=4, stride=2)
-        convh, convw = self.conv2d_size_calc(convh, convw, kernel_size=3, stride=1)
+        convh, convw = self.get_conv2d_width_size(h, w, kernel_size=8, stride=4)
+        convh, convw = self.get_conv2d_width_size(convh, convw, kernel_size=4, stride=2)
+        convh, convw = self.get_conv2d_width_size(convh, convw, kernel_size=3, stride=1)
 
         self.fc = nn.Sequential(
-            nn.Linear(convh * convw * 64, 512),
+            nn.Linear(convh * convw * 32, 256),
             nn.ReLU(),
-            nn.Linear(512, action_space_dims),
+            nn.Linear(256, action_space_dims),
         )
 
         self.apply(self._init_weights)
 
-    def conv2d_size_calc(self, h, w, kernel_size=1, stride=1, padding=0):
+    def get_conv2d_width_size(
+        self, h: int, w: int, kernel_size: int = 1, stride: int = 1, padding: int = 0
+    ) -> tuple:
         """
         Calcs conv layers output image sizes
         """
@@ -61,7 +64,7 @@ class CNNModel(nn.Module):
         output_h = (h - kernel_size + 2 * padding) // stride + 1
         output_w = (w - kernel_size + 2 * padding) // stride + 1
 
-        return output_h, output_w
+        return (output_h, output_w)
 
     def forward(self, x):
         x = self.features(x)
