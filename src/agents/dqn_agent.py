@@ -53,7 +53,9 @@ class DQNAgent(Agent):
         self.optimizer = optim.Adam(self.q_predict.parameters(), lr=self.config.lr)
 
         # Loss function
+        self.loss = None
         self.loss_fn = nn.MSELoss()
+        # self.loss_fn = nn.SmoothL1Loss()
 
     def get_action(self, state):
         # epsilon greedy exploration
@@ -86,43 +88,44 @@ class DQNAgent(Agent):
             done_batch,
         ) = self._get_tensor_batch_from_experiences(experiences)
 
-        q_values = self.q_predict(state_batch).gather(1, action_batch)
         next_q_values = self.q_target(next_state_batch).max(dim=1).values.detach()
         expected_q_values = reward_batch + self.config.gamma * next_q_values * (
             1 - done_batch
         )
-
-        loss = self.loss_fn(q_values, expected_q_values.unsqueeze(1))
+        current_q_values = self.q_predict(state_batch).gather(1, action_batch)
+        loss = self.loss_fn(expected_q_values.unsqueeze(1), current_q_values)
 
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
+        self.loss = loss.item()
 
     def _get_tensor_batch_from_experiences(self, experiences):
         states = torch.tensor(
-            [e.state for e in experiences if e is not None],
+            np.array([e.state for e in experiences if e is not None]),
             device=self.config.device,
             dtype=torch.float32,
         )
 
         actions = torch.tensor(
-            [e.action for e in experiences if e is not None], device=self.config.device
+            np.array([e.action for e in experiences if e is not None]),
+            device=self.config.device,
         ).unsqueeze(1)
 
         rewards = torch.tensor(
-            [e.reward for e in experiences if e is not None],
+            np.array([e.reward for e in experiences if e is not None]),
             device=self.config.device,
             dtype=torch.float32,
         )
 
         next_states = torch.tensor(
-            [e.next_state for e in experiences if e is not None],
+            np.array([e.next_state for e in experiences if e is not None]),
             device=self.config.device,
             dtype=torch.float32,
         )
 
         dones = torch.tensor(
-            [e.done for e in experiences if e is not None],
+            np.array([e.done for e in experiences if e is not None]),
             device=self.config.device,
             dtype=torch.uint8,
         )

@@ -1,4 +1,5 @@
 .DS_Store
+*.pth
 MUJOCO_LOG.TXT
 __pycache__
 robosuite
