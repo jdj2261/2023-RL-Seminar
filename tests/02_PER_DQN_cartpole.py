@@ -15,20 +15,23 @@ from src.utils import util as rl_util
 env = gym.make("CartPole-v1")
 rl_util.print_env_info(env=env)
 env.observation_space.shape
+
 # %%
 agent = DQNAgent(
     obs_space_shape=env.observation_space.shape,
     action_space_dims=env.action_space.n,
     is_atari=False,
+    memory_type="priority",
 )
 agent.config.n_episodes = 1000
-agent.config.target_update = 4
-agent.config.memory_capacity = 3000
+agent.config.target_update = 20
+agent.config.memory_capacity = 10000
 agent.config.batch_size = 64
 print(agent.config)
-print(type(agent.memory))
+print(type(agent._memory))
+
 #%%
-save_dir = "result/DQN/cartpole/"
+save_dir = "result/PER/cartpole/"
 rl_util.create_directory(save_dir)
 save_model_name = ""
 
@@ -80,7 +83,6 @@ for i_episode in range(agent.config.n_episodes):
 env.close()
 
 #%%
-
 fig, ax = rl_util.init_2d_figure("Reward")
 rl_util.plot_graph(
     ax, rewards, title="reward", ylabel="reward", save_dir_name=save_dir, is_save=True
@@ -91,7 +93,6 @@ rl_util.plot_graph(
     ax, losses, title="loss", ylabel="loss", save_dir_name=save_dir, is_save=True
 )
 rl_util.show_figure()
-
 
 # %%
 # load the weights from file

@@ -10,11 +10,11 @@ class Model(nn.Module):
         obs_space_dims = obs_space_shape[0]
         super(Model, self).__init__()
         self.fc = nn.Sequential(
-            nn.Linear(obs_space_dims, 24),
+            nn.Linear(obs_space_dims, 128),
             nn.ReLU(),
-            nn.Linear(24, 64),
+            nn.Linear(128, 128),
             nn.ReLU(),
-            nn.Linear(64, action_space_dims),
+            nn.Linear(128, action_space_dims),
         )
 
     def forward(self, x):
@@ -74,7 +74,7 @@ class CNNModel(nn.Module):
         x = self.features(x)
         x = torch.flatten(x, start_dim=1)
         x = self.fc(x)
-        x /= 255.0
+        x /= 256.0
         return x
 
     def _init_weights(self, moodule):

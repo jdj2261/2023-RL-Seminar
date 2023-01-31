@@ -1,8 +1,12 @@
 import cv2
 import torch
 import numpy as np
+import os
 import gymnasium as gym
+import matplotlib.pyplot as plt
+
 from dataclasses import dataclass
+from datetime import datetime
 
 
 def create_config() -> dict:
@@ -25,7 +29,7 @@ class Config:
     n_episodes = 1000
     batch_size: int = 64
     gamma: float = 0.99
-    lr: float = 0.005
+    lr: float = 0.001
     epsilon_start: float = 0.95
     epsilon_end: float = 0.01
     seed: int = 0
@@ -142,3 +146,51 @@ def print_env_info(env: gym.Env) -> None:
             f"{ShellColor.COLOR_CYAN}Action list:{ShellColor.ENDC} {env.env.get_action_meanings()}"
         )
     print("=" * 33)
+
+
+def create_directory(dir_name):
+    try:
+        if not os.path.exists(dir_name):
+            print(f"Create {dir_name} direcoty")
+            os.makedirs(dir_name)
+    except OSError:
+        print("Error: Failed to create the directory.")
+
+
+def get_current_time_string():
+    return datetime.now().strftime("%Y_%m_%d_%I_%M_%S")
+
+
+def init_2d_figure(name=None, figsize=(15, 7.5), dpi=80):
+    fig = plt.figure(name, figsize=figsize, dpi=dpi)
+    ax = plt.gca()
+    return fig, ax
+
+
+def plot_graph(
+    ax,
+    values,
+    title="result",
+    xlabel="episode",
+    ylabel="score",
+    is_save=False,
+    save_dir_name="result/",
+):
+    ax.plot(values, label=ylabel)
+    plt.xticks(fontsize=10)
+    plt.yticks(fontsize=10)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    ax.legend(prop={"size": 12})
+    if is_save:
+        create_directory(save_dir_name)
+        file_name = save_dir_name + title + "_{}.png".format(get_current_time_string())
+        print(f"Save {file_name}")
+        plt.savefig(file_name)
+
+
+def show_figure():
+    """
+    Show figure
+    """
+    plt.show()

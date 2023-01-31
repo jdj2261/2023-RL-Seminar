@@ -4,10 +4,10 @@ from abc import ABCMeta, abstractmethod
 
 class Memory(metaclass=ABCMeta):
     def __init__(self, memory_capacity: int) -> None:
-        self.buffer = deque(maxlen=memory_capacity)
+        self.buffer = deque([], maxlen=memory_capacity)
         self.memory_capacity = memory_capacity
         self.experience = namedtuple(
-            "Experience",
+            "experience",
             ("state", "action", "reward", "next_state", "done"),
         )
 

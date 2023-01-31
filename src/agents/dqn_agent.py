@@ -14,12 +14,12 @@ class DQNAgent(Agent):
         self,
         obs_space_shape: tuple,
         action_space_dims: int,
-        config: dict = {},
-        is_fixed_seed: bool = False,
+        is_fixed_seed: bool = True,
         is_atari: bool = True,
+        memory_type="uniform",
+        config: dict = {},
     ) -> None:
         super().__init__(obs_space_shape, action_space_dims, config)
-
         # set seed number
         if is_fixed_seed:
             np.random.seed(self.config.seed)
@@ -32,6 +32,7 @@ class DQNAgent(Agent):
             self.q_predict = Model(obs_space_shape, action_space_dims).to(
                 self.config.device
             )
+            self.q_target.load_state_dict(self.q_predict.state_dict())
         else:
             # TODO (atari or mujoco)
             self.q_target = CNNModel(obs_space_shape, action_space_dims).to(
@@ -41,21 +42,29 @@ class DQNAgent(Agent):
                 self.config.device, non_blocking=True
             )
 
+        self.memory_type = memory_type
+
+        self.use_priority = False
+        if "priority" in memory_type:
+            self.use_priority = True
+
         # Memory Type
-        if "priority" in self.config.memory_type:
+        if self.use_priority:
             # prioritized
-            self.memory = PrioritizedMemory(self.config.memory_capacity)
+            self._memory = PrioritizedMemory(self.config.memory_capacity)
         else:
             # uniform
-            self.memory = ReplayMemory(self.config.memory_capacity)
+            self._memory = ReplayMemory(self.config.memory_capacity)
 
         # Optimizer
-        self.optimizer = optim.Adam(self.q_predict.parameters(), lr=self.config.lr)
+        self.optimizer = optim.AdamW(
+            self.q_predict.parameters(), lr=self.config.lr, amsgrad=True
+        )
 
         # Loss function
         self.loss = None
-        self.loss_fn = nn.MSELoss()
-        # self.loss_fn = nn.SmoothL1Loss()
+        # self.loss_fn = nn.MSELoss()
+        self.loss_fn = nn.SmoothL1Loss()
 
     def get_action(self, state):
         # epsilon greedy exploration
@@ -66,68 +75,88 @@ class DQNAgent(Agent):
                 state = torch.tensor(
                     state, device=self.config.device, dtype=torch.float32
                 ).unsqueeze(dim=0)
+                # action = self.q_predict(state).max(1)[1].view(1, 1)
                 q_values = self.q_predict(state)
                 action = torch.argmax(q_values).item()
         return action
 
     def store_transition(self, state, action, reward, next_state, done) -> None:
-        self.memory.store(state, action, reward, next_state, done)
+        transition = self._get_tensor_transition(
+            state, action, reward, next_state, done
+        )
+        self._memory.store(*transition)
 
     def update(self):
-        if len(self.memory.buffer) < self.config.batch_size:
+        if len(self._memory.buffer) < self.config.batch_size:
             return
 
         # Sample random minibatch of transitions
-        experiences = self.memory.sample(self.config.batch_size)
+        if self.use_priority:
+            tree_idx, batch = self._memory.sample(self.batch_size)
+        else:
+            experiences = self._memory.sample(self.config.batch_size)
+            batch = self._memory.experience(*zip(*experiences))
 
-        (
-            state_batch,
-            action_batch,
-            reward_batch,
-            next_state_batch,
-            done_batch,
-        ) = self._get_tensor_batch_from_experiences(experiences)
+        state_batch = torch.cat(batch.state)
+        action_batch = torch.cat(batch.action)
+        reward_batch = torch.cat(batch.reward)
+        next_state_batch = torch.cat([s for s in batch.next_state if s is not None])
+        done_batch = torch.cat([s for s in batch.done if s is not None])
 
         next_q_values = self.q_target(next_state_batch).max(dim=1).values.detach()
         expected_q_values = reward_batch + self.config.gamma * next_q_values * (
-            1 - done_batch
+            1 - done_batch.float()
         )
         current_q_values = self.q_predict(state_batch).gather(1, action_batch)
-        loss = self.loss_fn(expected_q_values.unsqueeze(1), current_q_values)
+        loss = self.loss_fn(current_q_values, expected_q_values.unsqueeze(1))
 
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
+
+        for param in self.q_predict.parameters():
+            param.grad.data.clamp_(-1, 1)
+
+        # if self.use_priority:
+        #     indices = np.arange(self.config.batch_size, dtype=np.int32)
+        #     absolute_errors = np.abs(
+        #         target_old[indices, action_batch] - target[indices, action_batch]
+        #     )
+        #     # Update priority
+        #     self.MEMORY.batch_update(tree_idx, absolute_errors)
+
         self.loss = loss.item()
 
-    def _get_tensor_batch_from_experiences(self, experiences):
-        states = torch.tensor(
-            np.array([e.state for e in experiences if e is not None]),
-            device=self.config.device,
-            dtype=torch.float32,
-        )
+    def _get_tensor_transition(self, state, action, reward, next_state, done):
+        state = torch.tensor(
+            state, dtype=torch.float32, device=self.config.device
+        ).unsqueeze(0)
+        action = torch.tensor(
+            [action], dtype=torch.long, device=self.config.device
+        ).unsqueeze(0)
+        reward = torch.tensor(reward, device=self.config.device).unsqueeze(0)
+        next_state = torch.tensor(
+            next_state, dtype=torch.float32, device=self.config.device
+        ).unsqueeze(0)
+        done = torch.tensor(done, device=self.config.device).unsqueeze(0)
 
-        actions = torch.tensor(
-            np.array([e.action for e in experiences if e is not None]),
-            device=self.config.device,
-        ).unsqueeze(1)
+        return state, action, reward, next_state, done
 
-        rewards = torch.tensor(
-            np.array([e.reward for e in experiences if e is not None]),
-            device=self.config.device,
-            dtype=torch.float32,
-        )
+    @property
+    def memory_type(self):
+        return self.config.memory_type
 
-        next_states = torch.tensor(
-            np.array([e.next_state for e in experiences if e is not None]),
-            device=self.config.device,
-            dtype=torch.float32,
-        )
+    @memory_type.setter
+    def memory_type(self, memory_type):
+        # Memory Type
+        if "priority" in memory_type:
+            # prioritized
+            self._memory = PrioritizedMemory(self.config.memory_capacity)
+        else:
+            # uniform
+            self._memory = ReplayMemory(self.config.memory_capacity)
+        self.config.memory_type = memory_type
 
-        dones = torch.tensor(
-            np.array([e.done for e in experiences if e is not None]),
-            device=self.config.device,
-            dtype=torch.uint8,
-        )
-
-        return states, actions, rewards, next_states, dones
+    @property
+    def memory(self):
+        return self._memory

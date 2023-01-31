@@ -7,9 +7,8 @@ class ReplayMemory(Memory):
     def __init__(self, memory_capacity=10000) -> None:
         super().__init__(memory_capacity)
 
-    def store(self, state, action, reward, next_state, done):
-        experience = self.experience(state, action, reward, next_state, done)
-        self.buffer.append(experience)
+    def store(self, *transition):
+        self.buffer.append(self.experience(*transition))
 
     def sample(self, batch_size: int) -> tuple:
         batch_size = batch_size if len(self.buffer) > batch_size else len(self.buffer)
