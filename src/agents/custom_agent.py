@@ -7,7 +7,7 @@ class CustomAgent(Agent):
         super().__init__()
 
     # TODO
-    def get_action(self, state):
+    def select_action(self, state):
         pass
 
     # TODO

@@ -24,7 +24,7 @@ agent = DQNAgent(
     memory_type="priority",
 )
 agent.config.n_episodes = 1000
-agent.config.target_update = 20
+agent.config.update_frequency = 100
 agent.config.memory_capacity = 10000
 agent.config.batch_size = 64
 print(agent.config)
@@ -38,33 +38,38 @@ save_model_name = ""
 # %%
 rewards = []
 losses = []
+max_steps = 500
 for i_episode in range(agent.config.n_episodes):
     obs, info = env.reset()
     done = False
     ep_ret = 0
     ep_len = 0
     avg_loss = 0
-
-    while not done:
+    print(i_episode)
+    for step in range(max_steps):
         # env.render()
-        action = agent.get_action(obs)
+        action = agent.select_action(obs)
         next_obs, reward, terminated, truncated, info = env.step(action)
         done = terminated or truncated
         agent.store_transition(obs, action, reward, next_obs, done)
-
-        if len(agent.memory.buffer) > 2000:
+        # print(agent.memory)
+        ep_ret += reward
+        if len(agent.memory) > 32:
             agent.update()
             avg_loss += agent.loss
 
-        torch.cuda.empty_cache()
+        if done or step == max_steps - 1:
+            losses.append(ep_ret)
+            # print("Episode " + str(episode) + ": " + str(episode_reward))
+            break
+
         obs = next_obs
-        ep_ret += reward
         ep_len += 1
 
     agent.decay_epsilon()
     avg_loss /= ep_len
 
-    if (i_episode + 1) % agent.config.target_update:
+    if (i_episode + 1) % agent.config.update_frequency:
         agent.q_target.load_state_dict(agent.q_predict.state_dict())
 
     if (i_episode == 0) or (((i_episode + 1) % 1) == 0):
@@ -117,7 +122,7 @@ if not save_model_name:
         ep_ret = 0
 
         while not done:
-            action = test_agent.get_action(obs)
+            action = test_agent.select_action(obs)
             env.render()
             next_obs, reward, terminated, truncated, info = env.step(action)
             done = terminated or truncated

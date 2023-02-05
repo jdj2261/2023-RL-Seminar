@@ -16,10 +16,10 @@ class Agent(metaclass=ABCMeta):
         self.epsilon = self.config.epsilon_start
 
         # 0.001
-        self.epsilon_decay = self.config.epsilon_start / (self.config.n_episodes)
+        self.epsilon_decay = 0.001
 
     @abstractmethod
-    def get_action(self, state):
+    def select_action(self, state):
         raise NotImplementedError
 
     @abstractmethod
@@ -46,8 +46,7 @@ class Agent(metaclass=ABCMeta):
     def _get_config(config: dict) -> Config:
         init_config = Config()
         init_config.device = get_device()
-
-        if not config:
+        if config:
             init_config.batch_size = config.get("batch_size", init_config.batch_size)
             init_config.gamma = config.get("gamma", init_config.gamma)
             init_config.lr = config.get("learning_rate", init_config.lr)
@@ -62,6 +61,5 @@ class Agent(metaclass=ABCMeta):
             init_config.memory_capacity = config.get(
                 "memory_capacity", init_config.memory_capacity
             )
-            init_config.device = config.get("device", get_device())
 
         return init_config

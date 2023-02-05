@@ -4,12 +4,8 @@ from abc import ABCMeta, abstractmethod
 
 class Memory(metaclass=ABCMeta):
     def __init__(self, memory_capacity: int) -> None:
-        self.buffer = deque([], maxlen=memory_capacity)
+        self.replay_buffer = deque([], maxlen=memory_capacity)
         self.memory_capacity = memory_capacity
-        self.experience = namedtuple(
-            "experience",
-            ("state", "action", "reward", "next_state", "done"),
-        )
 
     @abstractmethod
     def store(self, state, action, reward, next_state, done):
@@ -24,11 +20,11 @@ class Memory(metaclass=ABCMeta):
         raise NotImplementedError
 
     def __len__(self):
-        return len(self.buffer)
+        return len(self.replay_buffer)
 
     def __iter__(self):
-        for i in self.buffer:
+        for i in self.replay_buffer:
             yield i
 
     def __repr__(self) -> str:
-        return f"memory size : {len(self.buffer)}"
+        return f"memory size : {len(self.replay_buffer)}"

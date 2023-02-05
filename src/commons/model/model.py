@@ -12,9 +12,9 @@ class Model(nn.Module):
         self.fc = nn.Sequential(
             nn.Linear(obs_space_dims, 128),
             nn.ReLU(),
-            nn.Linear(128, 128),
+            nn.Linear(128, 256),
             nn.ReLU(),
-            nn.Linear(128, action_space_dims),
+            nn.Linear(256, action_space_dims),
         )
 
     def forward(self, x):
@@ -74,7 +74,7 @@ class CNNModel(nn.Module):
         x = self.features(x)
         x = torch.flatten(x, start_dim=1)
         x = self.fc(x)
-        x /= 256.0
+        x /= 255.0
         return x
 
     def _init_weights(self, moodule):

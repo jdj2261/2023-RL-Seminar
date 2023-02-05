@@ -14,30 +14,29 @@ def create_config() -> dict:
     config["n_episodes"] = 10000
     config["batch_size"] = 64
     config["gamma"] = 0.99
-    config["lr"] = 5e-4
+    config["lr"] = 1e-4
     config["epsilon_start"] = 0.95
     config["epsilon_end"] = 0.01
     config["seed"] = 0
-    config["target_update"] = 4
+    config["update_frequency"] = 4
     config["memory_type"] = "uniform"
-    config["memory_capacity"] = 350000
+    config["memory_capacity"] = 1000
+    config["device"] = "cpu"
     return config
 
 
 @dataclass
 class Config:
-    n_episodes = 1000
+    n_episodes = 10000
     batch_size: int = 64
     gamma: float = 0.99
     lr: float = 0.001
     epsilon_start: float = 0.95
     epsilon_end: float = 0.01
     seed: int = 0
-    target_update: int = 4
-
+    update_frequency: int = 4
     memory_type: str = "uniform"  # "priority"
-    memory_capacity: int = 350000
-
+    memory_capacity: int = 1000
     device: str = "cpu"
 
     def __repr__(self) -> str:
@@ -63,7 +62,7 @@ class Config:
         result += "\n" + f"{ShellColor.COLOR_CYAN}seed:{ShellColor.ENDC} {self.seed}"
         result += (
             "\n"
-            + f"{ShellColor.COLOR_CYAN}target_update:{ShellColor.ENDC} {self.target_update}"
+            + f"{ShellColor.COLOR_CYAN}update_frequency:{ShellColor.ENDC} {self.update_frequency}"
         )
         result += (
             "\n"

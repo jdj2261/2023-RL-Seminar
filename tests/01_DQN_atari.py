@@ -58,7 +58,7 @@ print(agent.config)
 # plt.show()
 
 # #%%
-# action = agent.get_action(state)
+# action = agent.select_action(state)
 # print(action)
 # next_obs, reward, terminated, truncated, info = env.step(action)
 # print(next_obs.shape)
@@ -94,7 +94,7 @@ for episode in range(agent.config.n_episodes):
         # env.render()
         # print(state.shape)
 
-        action = agent.get_action(state)
+        action = agent.select_action(state)
 
         next_obs, reward, terminated, truncated, info = env.step(action)
         done = terminated or truncated
@@ -121,7 +121,7 @@ for episode in range(agent.config.n_episodes):
 
         agent.store_transition(state, action, reward, next_state, done)
 
-        if len(agent.memory.buffer) > 2000:
+        if len(agent.memory.replay_buffer) > 2000:
             agent.update()
             avg_loss += agent.loss
 
@@ -133,7 +133,7 @@ for episode in range(agent.config.n_episodes):
     agent.decay_epsilon()
     avg_loss /= frame
 
-    if (episode + 1) % agent.config.target_update:
+    if (episode + 1) % agent.config.update_frequency:
         agent.q_target.load_state_dict(agent.q_predict.state_dict())
 
     if (episode == 0) or (((episode + 1) % 1) == 0):
