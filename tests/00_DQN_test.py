@@ -30,7 +30,7 @@ for episode in range(1000):
     ep_len = 0
 
     while not done:
-        env.render()
+        # env.render()
         state = torch.tensor(obs, dtype=torch.float, device=test_agent.config.device)
         action = torch.argmax(test_agent.q_predict(state)).item()
         next_obs, reward, terminated, truncated, info = env.step(action)
