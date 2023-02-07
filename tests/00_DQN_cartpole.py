@@ -41,11 +41,9 @@ save_model_name = ""
 def evaluate_agent(model):
     reward_sum = 0.0
     for _ in range(10):
-        observation, _ = env.reset()
+        obs, _ = env.reset()
         while True:
-            state = torch.tensor(
-                observation, dtype=torch.float, device=agent.config.device
-            )
+            state = torch.tensor(obs, dtype=torch.float, device=agent.config.device)
             with torch.no_grad():
                 action = torch.argmax(model(state))
             next_obs, reward, terminated, truncated, _ = env.step(action.item())
@@ -53,7 +51,7 @@ def evaluate_agent(model):
             done = terminated or truncated
             reward_sum += reward
 
-            observation = next_obs
+            obs = next_obs
             if done:
                 break
     return reward_sum / 10.0
@@ -67,7 +65,7 @@ for i_episode in range(agent.config.n_episodes):
     obs, info = env.reset()
     avg_loss = 0
     len_game_progress = 0
-
+    test_reward = 0
     while True:
         # env.render()
         action = agent.select_action(obs)
@@ -81,6 +79,7 @@ for i_episode in range(agent.config.n_episodes):
 
         obs = next_obs
         len_game_progress += 1
+        test_reward += reward
         if done:
             break
 
@@ -88,7 +87,7 @@ for i_episode in range(agent.config.n_episodes):
     avg_loss /= len_game_progress
 
     if (i_episode) % 20 == 0:
-        test_reward = evaluate_agent(agent.q_predict)
+        # test_reward = rl_util.cartpole_evaluate_agent(env, agent)
         print(
             f"episode: {i_episode} | cur_reward: {test_reward:.4f} | loss: {avg_loss:.4f} | epsilon: {agent.epsilon:.4f}"
         )
@@ -129,16 +128,16 @@ rl_util.show_figure()
 # load the weights from file
 env = gym.make("CartPole-v1", render_mode="human")
 for ep in range(10):
-    observation, _ = env.reset()
+    obs, _ = env.reset()
     total_reward = 0
     while True:
         env.render()
-        state = torch.tensor(observation, dtype=torch.float, device=agent.config.device)
+        state = torch.tensor(obs, dtype=torch.float, device=agent.config.device)
         action = torch.argmax(agent.q_predict(state)).item()
         next_obs, reward, terminated, truncated, info = env.step(action)
         done = terminated or truncated
         total_reward += reward
-        observation = next_obs
+        obs = next_obs
         if done:
             break
     print(total_reward)

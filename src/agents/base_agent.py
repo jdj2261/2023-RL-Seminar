@@ -47,6 +47,7 @@ class Agent(metaclass=ABCMeta):
         init_config = Config()
         init_config.device = get_device()
         if config:
+            init_config.n_episodes = config.get("n_episodes", init_config.n_episodes)
             init_config.batch_size = config.get("batch_size", init_config.batch_size)
             init_config.gamma = config.get("gamma", init_config.gamma)
             init_config.lr = config.get("learning_rate", init_config.lr)

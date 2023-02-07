@@ -147,6 +147,47 @@ def print_env_info(env: gym.Env) -> None:
     print("=" * 33)
 
 
+def cartpole_evaluate_agent(env, agent, num=10):
+    reward_sum = 0.0
+    for _ in range(num):
+        obs, _ = env.reset()
+        while True:
+            state = torch.tensor(obs, dtype=torch.float, device=agent.config.device)
+            with torch.no_grad():
+                action = torch.argmax(agent.q_predict(state))
+            next_obs, reward, terminated, truncated, _ = env.step(action.item())
+            done = terminated or truncated
+            reward_sum += reward
+
+            obs = next_obs
+            if done:
+                break
+    return reward_sum / float(num)
+
+
+def atari_evaluate_agent(env, agent, num=10):
+    reward_sum = 0.0
+    for _ in range(num):
+        obs, _ = env.reset()
+        obs = np.squeeze(obs, axis=-1)
+        while True:
+            env.render()
+            state = torch.tensor(
+                obs, dtype=torch.float, device=agent.config.device
+            ).unsqueeze(0)
+            with torch.no_grad():
+                action = torch.argmax(agent.q_predict(state))
+            print(action)
+            next_obs, reward, terminated, truncated, _ = env.step(action.item())
+            next_obs = np.squeeze(next_obs, axis=-1)
+            done = terminated or truncated
+            reward_sum += reward
+            obs = next_obs
+            if done:
+                break
+    return reward_sum / float(num)
+
+
 def create_directory(dir_name):
     try:
         if not os.path.exists(dir_name):

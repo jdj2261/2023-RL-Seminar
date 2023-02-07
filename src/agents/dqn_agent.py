@@ -32,6 +32,7 @@ class DQNAgent(Agent):
         if "priority" in memory_type:
             self.use_priority = True
 
+        self.is_atari = is_atari
         # Memory Type
         self._memory = self._get_memory()
 
@@ -71,9 +72,14 @@ class DQNAgent(Agent):
             action = np.random.choice(np.arange(self.action_space_dims), 1)[0]
         else:
             with torch.no_grad():
-                state = torch.tensor(
-                    state, dtype=torch.float, device=self.config.device
-                )
+                if self.is_atari:
+                    state = torch.tensor(
+                        state, dtype=torch.float, device=self.config.device
+                    ).unsqueeze(0)
+                else:
+                    state = torch.tensor(
+                        state, dtype=torch.float, device=self.config.device
+                    )
                 q_values = self.q_predict(state)
                 action = torch.argmax(q_values).item()
         return action
@@ -145,8 +151,13 @@ class DQNAgent(Agent):
             r_list.append([sample[2]])
             a_list.append([sample[1]])
             done_list.append([0]) if sample[-1] else done_list.append([1])
-        states = np.vstack(s_list)
-        next_states = np.vstack(s_p_list)
+
+        if self.is_atari:
+            states = np.array(s_list)
+            next_states = np.array(s_list)
+        else:
+            states = np.vstack(s_list)
+            next_states = np.vstack(s_p_list)
         states = torch.tensor(states, dtype=torch.float32, device=self.config.device)
         next_states = torch.tensor(
             next_states, dtype=torch.float32, device=self.config.device
@@ -158,28 +169,6 @@ class DQNAgent(Agent):
         dones = torch.tensor(
             done_list, dtype=torch.float, device=self.config.device
         ).reshape(-1, 1)
-
-        # states, actions, rewards, next_states, dones = (
-        #     mini_batch[0],
-        #     mini_batch[1],
-        #     mini_batch[2],
-        #     mini_batch[3],
-        #     mini_batch[4],
-        # )
-
-        # states = np.vstack(states)
-        # states = torch.tensor(states, dtype=torch.float32, device=self.config.device)
-
-        # actions = torch.tensor(
-        #     list(actions), dtype=torch.long, device=self.config.device
-        # ).view(-1, 1)
-        # rewards = torch.tensor(list(rewards), device=self.config.device)
-        # next_states = np.vstack(next_states)
-        # next_states = torch.tensor(
-        #     next_states, dtype=torch.float32, device=self.config.device
-        # )
-
-        # dones = torch.tensor(list(dones), device=self.config.device)
 
         return states, actions, rewards, next_states, dones
 

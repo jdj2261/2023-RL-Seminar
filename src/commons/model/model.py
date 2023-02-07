@@ -26,18 +26,19 @@ class CNNModel(nn.Module):
         assert action_space_dims > 0
 
         print(f"Model Initializing... An input shape is {input_shape}")
+        print(input_shape)
         obs_space_dims = input_shape[0]
         h, w = input_shape[1], input_shape[2]
         super(CNNModel, self).__init__()
 
         self.features = nn.Sequential(
-            nn.Conv2d(obs_space_dims, 24, kernel_size=8, stride=4),
+            nn.Conv2d(obs_space_dims, 32, kernel_size=8, stride=4),
             # nn.BatchNorm2d(32),
             nn.ReLU(),
-            nn.Conv2d(24, 32, kernel_size=4, stride=2),
+            nn.Conv2d(32, 64, kernel_size=4, stride=2),
             # nn.BatchNorm2d(64),
             nn.ReLU(),
-            nn.Conv2d(32, 32, kernel_size=3, stride=1),
+            nn.Conv2d(64, 64, kernel_size=3, stride=1),
             # nn.BatchNorm2d(64),
             nn.ReLU(),
         )
@@ -51,7 +52,7 @@ class CNNModel(nn.Module):
         )
 
         self.fc = nn.Sequential(
-            nn.Linear(convh * convw * 32, 256),
+            nn.Linear(convh * convw * 64, 256),
             nn.ReLU(),
             nn.Linear(256, action_space_dims),
         )
@@ -74,7 +75,8 @@ class CNNModel(nn.Module):
         x = self.features(x)
         x = torch.flatten(x, start_dim=1)
         x = self.fc(x)
-        x /= 255.0
+        # print(x.shape)
+        # x /= 255.0
         return x
 
     def _init_weights(self, moodule):
