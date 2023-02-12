@@ -11,39 +11,52 @@ from datetime import datetime
 
 def create_config() -> dict:
     config = {}
-    config["n_episodes"] = 10000
-    config["batch_size"] = 64
+    config["env"] = "PongNoFrameskip-v4"
+    config["num_steps"] = int(1e6)
+    config["batch_size"] = 32
     config["gamma"] = 0.99
     config["lr"] = 1e-4
-    config["epsilon_start"] = 0.95
+    config["learning_starts"] = 10000
+    config["learning_frequency"] = 1
+    config["epsilon_start"] = 1
     config["epsilon_end"] = 0.01
+    config["dpsilon_decay"] = 0.1
     config["seed"] = 0
-    config["update_frequency"] = 4
-    config["memory_type"] = "uniform"
-    config["memory_capacity"] = 1000
+    config["target_update_frequency"] = 1000
+    config["buffer_type"] = "uniform"
+    config["buffer_size"] = int(5e3)
     config["device"] = "cpu"
+    config["mean_reward_bound"] = 10
+    config["print_frequency"] = 10
     return config
 
 
 @dataclass
 class Config:
-    n_episodes = 10000
-    batch_size: int = 64
-    gamma: float = 0.99
-    lr: float = 0.001
-    epsilon_start: float = 0.95
-    epsilon_end: float = 0.01
-    seed: int = 0
-    update_frequency: int = 4
-    memory_type: str = "uniform"  # "priority"
-    memory_capacity: int = 1000
-    device: str = "cpu"
+    env = "PongNoFrameskip-v4"
+    num_steps = int(1e6)
+    batch_size = 32
+    gamma = 0.99
+    lr = 1e-4
+    learning_starts = 10000
+    learning_frequency = 1
+    epsilon_start = 1
+    epsilon_end = 0.01
+    epsilon_decay = 100000
+    seed = 0
+    target_update_frequency = 1000
+    buffer_type = "uniform"
+    buffer_size = int(5e3)
+    device = "cpu"
+    mean_reward_bound = 10
+    print_frequency = 10
 
     def __repr__(self) -> str:
         result = "=" * 10 + " Config Info " + "=" * 10
+        result += "\n" + f"{ShellColor.COLOR_CYAN}env:{ShellColor.ENDC} {self.env}"
         result += (
             "\n"
-            + f"{ShellColor.COLOR_CYAN}n_episodes:{ShellColor.ENDC} {self.n_episodes}"
+            + f"{ShellColor.COLOR_CYAN}num_steps:{ShellColor.ENDC} {self.num_steps}"
         )
         result += (
             "\n"
@@ -53,27 +66,47 @@ class Config:
         result += "\n" + f"{ShellColor.COLOR_CYAN}lr:{ShellColor.ENDC} {self.lr}"
         result += (
             "\n"
+            + f"{ShellColor.COLOR_CYAN}learning_starts:{ShellColor.ENDC} {self.learning_starts}"
+        )
+        result += (
+            "\n"
+            + f"{ShellColor.COLOR_CYAN}learning_frequency:{ShellColor.ENDC} {self.learning_frequency}"
+        )
+        result += (
+            "\n"
             + f"{ShellColor.COLOR_CYAN}epsilon_start:{ShellColor.ENDC} {self.epsilon_start}"
         )
         result += (
             "\n"
             + f"{ShellColor.COLOR_CYAN}epsilon_end:{ShellColor.ENDC} {self.epsilon_end}"
         )
+        result += (
+            "\n"
+            + f"{ShellColor.COLOR_CYAN}epsilon_decay:{ShellColor.ENDC} {self.epsilon_decay}"
+        )
         result += "\n" + f"{ShellColor.COLOR_CYAN}seed:{ShellColor.ENDC} {self.seed}"
         result += (
             "\n"
-            + f"{ShellColor.COLOR_CYAN}update_frequency:{ShellColor.ENDC} {self.update_frequency}"
+            + f"{ShellColor.COLOR_CYAN}target_update_frequency:{ShellColor.ENDC} {self.target_update_frequency}"
         )
         result += (
             "\n"
-            + f"{ShellColor.COLOR_CYAN}memory_type:{ShellColor.ENDC} {self.memory_type}"
+            + f"{ShellColor.COLOR_CYAN}buffer_type:{ShellColor.ENDC} {self.buffer_type}"
         )
         result += (
             "\n"
-            + f"{ShellColor.COLOR_CYAN}memory_capacity:{ShellColor.ENDC} {self.memory_capacity}"
+            + f"{ShellColor.COLOR_CYAN}buffer_size:{ShellColor.ENDC} {self.buffer_size}"
         )
         result += (
             "\n" + f"{ShellColor.COLOR_CYAN}device:{ShellColor.ENDC} {self.device}"
+        )
+        result += (
+            "\n"
+            + f"{ShellColor.COLOR_CYAN}mean_reward_bound:{ShellColor.ENDC} {self.mean_reward_bound}"
+        )
+        result += (
+            "\n"
+            + f"{ShellColor.COLOR_CYAN}print_frequency:{ShellColor.ENDC} {self.print_frequency}"
         )
         result += "\n" + "=" * 33
         return f"{result}"
@@ -115,19 +148,34 @@ def get_device():
     return device
 
 
-def get_preprocessed_img(image, heigt, width):
-    """
-    Process image crop resize, grayscale and normalize the images
-    """
-    # print(image[0])
-    preprocessed_img = cv2.cvtColor(
-        cv2.resize(image, (heigt, width), interpolation=cv2.INTER_AREA),
-        cv2.COLOR_BGR2GRAY,
-    )
-    # preprocessed_img = np.expand_dims(preprocessed_img, -1)
-    # preprocessed_img = np.transpose(preprocessed_img, (2, 0, 1)).astype(np.float32)
-    preprocessed_img = preprocessed_img.astype(np.uint8)
-    return preprocessed_img
+def get_preprocessed_frame(screen, exclude, output):
+    screen = cv2.cvtColor(screen, cv2.COLOR_RGB2GRAY)
+    # Crop screen[Up: Down, Left: right]
+    screen = screen[exclude[0] : exclude[2], exclude[3] : exclude[1]]
+    # Convert to float, and normalized
+    screen = np.ascontiguousarray(screen, dtype=np.float32) / 255
+    # Resize image to 84 * 84
+    screen = cv2.resize(screen, (output, output), interpolation=cv2.INTER_AREA)
+    return screen
+
+
+def stack_frame(stacked_frames, frame, is_new):
+    if is_new:
+        stacked_frames = np.stack(arrays=[frame, frame, frame, frame])
+    else:
+        stacked_frames[0] = stacked_frames[1]
+        stacked_frames[1] = stacked_frames[2]
+        stacked_frames[2] = stacked_frames[3]
+        stacked_frames[3] = frame
+
+    return stacked_frames
+
+
+def stack_frames(frames, state, is_new=False):
+    frame = get_preprocessed_frame(state, (30, -4, -12, 4), 84)
+    frames = stack_frame(frames, frame, is_new)
+
+    return frames
 
 
 def print_env_info(env: gym.Env) -> None:
@@ -154,7 +202,7 @@ def cartpole_evaluate_agent(env, agent, num=10):
         while True:
             state = torch.tensor(obs, dtype=torch.float, device=agent.config.device)
             with torch.no_grad():
-                action = torch.argmax(agent.q_predict(state))
+                action = torch.argmax(agent.policy_network(state))
             next_obs, reward, terminated, truncated, _ = env.step(action.item())
             done = terminated or truncated
             reward_sum += reward
@@ -176,7 +224,7 @@ def atari_evaluate_agent(env, agent, num=10):
                 obs, dtype=torch.float, device=agent.config.device
             ).unsqueeze(0)
             with torch.no_grad():
-                action = torch.argmax(agent.q_predict(state))
+                action = torch.argmax(agent.policy_network(state))
             print(action)
             next_obs, reward, terminated, truncated, _ = env.step(action.item())
             next_obs = np.squeeze(next_obs, axis=-1)

@@ -21,11 +21,11 @@ agent = DQNAgent(
     obs_space_shape=env.observation_space.shape,
     action_space_dims=env.action_space.n,
     is_atari=False,
-    memory_type="priority",
+    buffer_type="priority",
 )
 agent.config.n_episodes = 1000
-agent.config.update_frequency = 100
-agent.config.memory_capacity = 10000
+agent.config.target_update_frequency = 100
+agent.config.buffer_size = 10000
 agent.config.batch_size = 64
 print(agent.config)
 print(type(agent._memory))
@@ -69,8 +69,8 @@ for i_episode in range(agent.config.n_episodes):
     agent.decay_epsilon()
     avg_loss /= ep_len
 
-    if (i_episode + 1) % agent.config.update_frequency:
-        agent.q_target.load_state_dict(agent.q_predict.state_dict())
+    if (i_episode + 1) % agent.config.target_update_frequency:
+        agent.q_target.load_state_dict(agent.policy_network.state_dict())
 
     if (i_episode == 0) or (((i_episode + 1) % 1) == 0):
         print(
@@ -83,7 +83,7 @@ for i_episode in range(agent.config.n_episodes):
         current_time = rl_util.get_current_time_string()
         save_model_name = save_dir + "checkpoint_" + current_time + ".pt"
         print(f"Save model {save_model_name} | episode is {i_episode}")
-        torch.save(agent.q_predict.state_dict(), save_model_name)
+        torch.save(agent.policy_network.state_dict(), save_model_name)
 
 env.close()
 
@@ -111,10 +111,10 @@ if not save_model_name:
     current_time = rl_util.get_current_time_string()
     save_model_name = save_dir + "checkpoint_" + current_time + ".pt"
     print(f"Save model {save_model_name} | episode is {i_episode}")
-    torch.save(agent.q_predict.state_dict(), save_model_name)
+    torch.save(agent.policy_network.state_dict(), save_model_name)
 
     print(f"load {save_model_name} model ")
-    test_agent.q_predict.load_state_dict(torch.load(save_model_name))
+    test_agent.policy_network.load_state_dict(torch.load(save_model_name))
 
     for episode in range(1000):
         obs, info = env.reset()

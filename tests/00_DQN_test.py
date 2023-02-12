@@ -21,7 +21,7 @@ print(test_agent.config)
 
 save_dir = "result/DQN/cartpole/"
 file_name = "checkpoint_2023_02_06_01_50_55.pt"
-test_agent.q_predict.load_state_dict(torch.load(save_dir + file_name))
+test_agent.policy_network.load_state_dict(torch.load(save_dir + file_name))
 
 for episode in range(1000):
     obs, info = env.reset()
@@ -32,7 +32,7 @@ for episode in range(1000):
     while not done:
         # env.render()
         state = torch.tensor(obs, dtype=torch.float, device=test_agent.config.device)
-        action = torch.argmax(test_agent.q_predict(state)).item()
+        action = torch.argmax(test_agent.policy_network(state)).item()
         next_obs, reward, terminated, truncated, info = env.step(action)
         done = terminated or truncated
         ep_ret += reward

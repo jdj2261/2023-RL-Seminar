@@ -19,9 +19,9 @@ env.observation_space.shape
 # %%
 config = rl_util.create_config()
 config["batch_size"] = 32
-config["memory_capacity"] = 30000
+config["buffer_size"] = 30000
 config["gamma"] = 0.99
-config["update_frequency"] = 4
+config["target_update_frequency"] = 4
 
 agent = DQNAgent(
     obs_space_shape=env.observation_space.shape,
@@ -61,35 +61,39 @@ def evaluate_agent(model):
 rewards = deque([], maxlen=5)
 total_rewards = []
 losses = []
-for i_episode in range(agent.config.n_episodes):
+frame_idx = 0
+for i_episode in range(agent.config.num_steps):
+
     obs, info = env.reset()
     avg_loss = 0
     len_game_progress = 0
     test_reward = 0
     while True:
         # env.render()
-        action = agent.select_action(obs)
+        frame_idx += 1
+        eps = agent.decay_epsilon(frame_idx)
+        action = agent.select_action(obs, eps)
         next_obs, reward, terminated, truncated, info = env.step(action)
         done = terminated or truncated
         agent.store_transition(obs, action, reward, next_obs, done)
 
         if len(agent.memory.replay_buffer) > 1000:
-            agent.update()
-            avg_loss += agent.loss
+            loss = agent.update()
+            avg_loss += loss
 
+        agent.update_target_network()
         obs = next_obs
         len_game_progress += 1
         test_reward += reward
         if done:
             break
 
-    agent.decay_epsilon()
     avg_loss /= len_game_progress
 
     if (i_episode) % 20 == 0:
         # test_reward = rl_util.cartpole_evaluate_agent(env, agent)
         print(
-            f"episode: {i_episode} | cur_reward: {test_reward:.4f} | loss: {avg_loss:.4f} | epsilon: {agent.epsilon:.4f}"
+            f"episode: {i_episode} | cur_reward: {test_reward:.4f} | loss: {avg_loss:.4f} | epsilon: {eps:.4f}"
         )
         rewards.append(test_reward)
         total_rewards.append(test_reward)
@@ -100,7 +104,7 @@ for i_episode in range(agent.config.n_episodes):
         current_time = rl_util.get_current_time_string()
         save_model_name = save_dir + "checkpoint_" + current_time + ".pt"
         print(f"Save model {save_model_name} | episode is {(i_episode)}")
-        torch.save(agent.q_predict.state_dict(), save_model_name)
+        torch.save(agent.policy_network.state_dict(), save_model_name)
         break
 
 env.close()
@@ -133,7 +137,7 @@ for ep in range(10):
     while True:
         env.render()
         state = torch.tensor(obs, dtype=torch.float, device=agent.config.device)
-        action = torch.argmax(agent.q_predict(state)).item()
+        action = torch.argmax(agent.policy_network(state)).item()
         next_obs, reward, terminated, truncated, info = env.step(action)
         done = terminated or truncated
         total_reward += reward

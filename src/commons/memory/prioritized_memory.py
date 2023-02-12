@@ -5,60 +5,66 @@ from src.utils.sum_tree import SumTree
 
 
 class PrioritizedMemory(Memory):
-    e = 0.01
-    alpha = 0.6
-    beta = 0.4
-    beta_increment_per_sampling = 0.001
-
-    def __init__(self, memory_capacity) -> None:
-        super().__init__(memory_capacity)
-        self.replay_buffer = SumTree(capacity=memory_capacity)
-        self.current_length = 0
+    def __init__(self, buffer_size) -> None:
+        super().__init__(buffer_size)
+        self.prob_alpha = 0.6
+        self.position = 0
+        self.priorities = np.zeros((buffer_size,), dtype=np.float32)
 
     def store(self, state, action, reward, next_state, done):
-        priority = 1.0 if self.current_length is 0 else self.replay_buffer.tree.max()
-        self.current_length = self.current_length + 1
-        experience = (state, action, np.array([reward]), next_state, done)
-        self.replay_buffer.add(priority, experience)
+        transition = state, action, reward, next_state, done
+        max_prio = self.priorities.max() if self.replay_buffer else 1.0
 
-    def sample(self, batch_size):
-        batch_idx, batch = [], []
-        priorities = []
-        segment = self.replay_buffer.total() / batch_size
-        self.beta = np.min([1.0, self.beta + self.beta_increment_per_sampling])
+        if self.__len__() < self.buffer_size:
+            self.replay_buffer.append(transition)
+        if self.__len__() == self.buffer_size:
+            self.replay_buffer[self.position] = transition
 
-        for i in range(batch_size):
-            a = segment * i
-            b = segment * (i + 1)
+        self.priorities[self.position] = max_prio
+        self.position = (self.position + 1) % self.buffer_size
 
-            while True:
-                s = random.uniform(a, b)
-                (idx, p, transition) = self.replay_buffer.get(s)
-                if not isinstance(transition, int):
-                    break
+    def sample(self, batch_size, beta=0.4):
 
-            priorities.append(p)
-            batch.append(transition)
-            batch_idx.append(idx)
+        if self.__len__() == self.buffer_size:
+            prios = self.priorities
+        else:
+            prios = self.priorities[: self.position]
+        probs = prios**self.prob_alpha
+        probs /= probs.sum()
 
-        sampling_probabilities = priorities / self.replay_buffer.total()
-        is_weight = np.power(
-            self.replay_buffer.n_entries * sampling_probabilities, -self.beta
-        )
-        is_weight /= is_weight.max()
+        indices = np.random.randint(0, len(self.replay_buffer) - 1, size=batch_size)
+
+        total = self.__len__()
+        weights = (total * probs[indices]) ** (-beta)
+        weights /= weights.max()
+        weights = np.array(weights, dtype=np.float32)
+
+        states, actions, rewards, next_states, dones = [], [], [], [], []
+        for i in indices:
+            data = self.replay_buffer[i]
+            state, action, reward, next_state, done = data
+            states.append(np.array(state, copy=False))
+            actions.append(action)
+            rewards.append(reward)
+            next_states.append(np.array(next_state, copy=False))
+            dones.append(done)
 
         return (
-            batch,
-            batch_idx,
-            is_weight,
+            np.array(states),
+            np.array(actions),
+            np.array(rewards),
+            np.array(next_states),
+            np.array(dones),
+            indices,
+            weights,
         )
 
-    def update_priority(self, idx, td_error):
-        priority = td_error**self.alpha + 1e-6
-        self.replay_buffer.update(idx, priority)
+    def update_priorities(self, batch_indices, batch_priorities):
+        for idx, prio in zip(batch_indices, batch_priorities):
+            self.priorities[idx] = prio
 
     def clear(self):
-        self.replay_buffer = None
+        pass
 
     def __len__(self):
-        return self.current_length
+        return len(self.replay_buffer)

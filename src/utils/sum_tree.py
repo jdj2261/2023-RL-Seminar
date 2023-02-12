@@ -1,8 +1,6 @@
 import numpy as np
 
 
-# SumTree
-# a binary tree data structure where the parent’s value is the sum of its children
 class SumTree:
     write = 0
 
@@ -10,7 +8,6 @@ class SumTree:
         self.capacity = capacity
         self.tree = np.zeros(2 * capacity - 1)
         self.data = np.zeros(capacity, dtype=object)
-        self.n_entries = 0
 
     def _propagate(self, idx, change):
         parent = (idx - 1) // 2
@@ -45,9 +42,6 @@ class SumTree:
         if self.write >= self.capacity:
             self.write = 0
 
-        if self.n_entries < self.capacity:
-            self.n_entries += 1
-
     def update(self, idx, p):
         change = p - self.tree[idx]
 
@@ -59,6 +53,3 @@ class SumTree:
         dataIdx = idx - self.capacity + 1
 
         return (idx, self.tree[idx], self.data[dataIdx])
-
-    def __len__(self):
-        pass
