@@ -9,36 +9,41 @@ from src.agents.dqn_agent import DQNAgent
 from src.utils import util as rl_util
 
 
-env = gym.make("CartPole-v1", render_mode="human")
-# env = gym.make("CartPole-v1")
-rl_util.print_env_info(env=env)
+env = gym.make("CartPole-v1")
+config = rl_util.create_config()
+config["batch_size"] = 32
+config["buffer_size"] = 30000
+config["gamma"] = 0.99
+config["target_update_frequency"] = 4
+
 test_agent = DQNAgent(
     obs_space_shape=env.observation_space.shape,
     action_space_dims=env.action_space.n,
     is_atari=False,
+    config=config,
 )
 print(test_agent.config)
 
 save_dir = "result/DQN/cartpole/"
-file_name = "checkpoint_2023_02_06_01_50_55.pt"
+file_name = "checkpoint_2023_02_13_09_22_54.pt"
+print(save_dir + file_name)
 test_agent.policy_network.load_state_dict(torch.load(save_dir + file_name))
 
-for episode in range(1000):
-    obs, info = env.reset()
-    done = False
-    ep_ret = 0
-    ep_len = 0
-
-    while not done:
-        # env.render()
+# %%
+# load the weights from file
+env = gym.make("CartPole-v1", render_mode="human")
+for ep in range(10):
+    obs, _ = env.reset()
+    total_reward = 0
+    while True:
+        env.render()
         state = torch.tensor(obs, dtype=torch.float, device=test_agent.config.device)
         action = torch.argmax(test_agent.policy_network(state)).item()
         next_obs, reward, terminated, truncated, info = env.step(action)
         done = terminated or truncated
-        ep_ret += reward
-        ep_len += 1
+        total_reward += reward
         obs = next_obs
-
-    # if (episode == 0) or (((episode + 1) % 1) == 0):
-    print(f"episode: {episode + 1} | ep_ret: {ep_ret:.4f}")
+        if done:
+            break
+    print(total_reward)
 env.close()

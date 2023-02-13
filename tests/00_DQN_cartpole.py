@@ -36,27 +36,6 @@ print(type(agent.memory))
 save_dir = "result/DQN/cartpole/"
 rl_util.create_directory(save_dir)
 save_model_name = ""
-
-#%%
-def evaluate_agent(model):
-    reward_sum = 0.0
-    for _ in range(10):
-        obs, _ = env.reset()
-        while True:
-            state = torch.tensor(obs, dtype=torch.float, device=agent.config.device)
-            with torch.no_grad():
-                action = torch.argmax(model(state))
-            next_obs, reward, terminated, truncated, _ = env.step(action.item())
-
-            done = terminated or truncated
-            reward_sum += reward
-
-            obs = next_obs
-            if done:
-                break
-    return reward_sum / 10.0
-
-
 # %%
 rewards = deque([], maxlen=5)
 total_rewards = []
@@ -91,7 +70,6 @@ for i_episode in range(agent.config.num_steps):
     avg_loss /= len_game_progress
 
     if (i_episode) % 20 == 0:
-        # test_reward = rl_util.cartpole_evaluate_agent(env, agent)
         print(
             f"episode: {i_episode} | cur_reward: {test_reward:.4f} | loss: {avg_loss:.4f} | epsilon: {eps:.4f}"
         )
@@ -127,6 +105,19 @@ rl_util.plot_graph(
 )
 rl_util.show_figure()
 
+#%%
+test_agent = DQNAgent(
+    obs_space_shape=env.observation_space.shape,
+    action_space_dims=env.action_space.n,
+    is_atari=False,
+    config=config,
+)
+print(test_agent.config)
+
+save_dir = "result/DQN/cartpole/"
+file_name = "checkpoint_2023_02_13_09_22_54.pt"
+print(save_dir + file_name)
+test_agent.policy_network.load_state_dict(torch.load(save_dir + file_name))
 
 # %%
 # load the weights from file
@@ -136,8 +127,8 @@ for ep in range(10):
     total_reward = 0
     while True:
         env.render()
-        state = torch.tensor(obs, dtype=torch.float, device=agent.config.device)
-        action = torch.argmax(agent.policy_network(state)).item()
+        state = torch.tensor(obs, dtype=torch.float, device=test_agent.config.device)
+        action = torch.argmax(test_agent.policy_network(state)).item()
         next_obs, reward, terminated, truncated, info = env.step(action)
         done = terminated or truncated
         total_reward += reward

@@ -11,7 +11,6 @@ from datetime import datetime
 
 def create_config() -> dict:
     config = {}
-    config["env"] = "PongNoFrameskip-v4"
     config["num_steps"] = int(1e6)
     config["batch_size"] = 32
     config["gamma"] = 0.99
@@ -33,7 +32,6 @@ def create_config() -> dict:
 
 @dataclass
 class Config:
-    env = "PongNoFrameskip-v4"
     num_steps = int(1e6)
     batch_size = 32
     gamma = 0.99
@@ -53,7 +51,6 @@ class Config:
 
     def __repr__(self) -> str:
         result = "=" * 10 + " Config Info " + "=" * 10
-        result += "\n" + f"{ShellColor.COLOR_CYAN}env:{ShellColor.ENDC} {self.env}"
         result += (
             "\n"
             + f"{ShellColor.COLOR_CYAN}num_steps:{ShellColor.ENDC} {self.num_steps}"

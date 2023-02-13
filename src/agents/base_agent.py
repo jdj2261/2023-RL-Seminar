@@ -49,7 +49,6 @@ class Agent(metaclass=ABCMeta):
         init_config = Config()
         init_config.device = get_device()
         if config:
-            init_config.env = config.get("env", init_config.env)
             init_config.num_steps = config.get("num_steps", init_config.num_steps)
             init_config.batch_size = config.get("batch_size", init_config.batch_size)
             init_config.gamma = config.get("gamma", init_config.gamma)

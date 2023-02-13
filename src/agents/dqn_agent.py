@@ -23,8 +23,8 @@ class DQNAgent(Agent):
         super().__init__(obs_space_shape, action_space_dims, config)
 
         if is_fixed_seed:
-            np.random.seed(config["seed"])
-            random.seed(config["seed"])
+            np.random.seed(self.config.seed)
+            random.seed(self.config.seed)
 
         self.target_network, self.policy_network = self._get_q_models(
             obs_space_shape, action_space_dims, self.config.device, is_atari

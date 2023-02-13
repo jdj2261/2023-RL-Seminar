@@ -26,8 +26,8 @@ class CNNModel(nn.Module):
         assert action_space_dims > 0
 
         print(f"Model Initializing... An input shape is {input_shape}")
-        obs_space_dims = 4
-        h, w = 84, 84
+        obs_space_dims = input_shape[0]
+        h, w = input_shape[1], input_shape[1]
         super(CNNModel, self).__init__()
 
         self.features = nn.Sequential(
