@@ -1,11 +1,8 @@
 # %%
 import gymnasium as gym
-
-# import gym
 import torch
-import numpy as np
 import matplotlib.pyplot as plt
-from tqdm import tqdm
+import wandb
 from collections import deque
 from src.utils.util import ShellColor as sc
 
@@ -16,117 +13,103 @@ from src.agents.dqn_agent import DQNAgent
 from src.utils import util as rl_util
 
 #%%
-env = gym.make("PongNoFrameskip-v4")
-env.seed(0)
+env_name = "PongNoFrameskip-v4"
+env = gym.make(env_name)
+env = gym.wrappers.AtariPreprocessing(
+    env=env, terminal_on_life_loss=True, grayscale_obs=True, scale_obs=False, noop_max=0
+)
+# env = ImageToPyTorch(env)
+env = gym.wrappers.FrameStack(env, num_stack=4)
 rl_util.print_env_info(env=env)
 
 
 # %%
 config = rl_util.create_config()
-config["n_episodes"] = 600
-config["batch_size"] = 64
-config["buffer_size"] = 100000
-config["gamma"] = 0.99
-config["target_update_frequency"] = 10000
-config["lr"] = 0.00025
+config["seed"] = 42
+wandb.init(project="DDQN-Atari", config=config)
 
+#%%
 agent = DQNAgent(
     obs_space_shape=env.observation_space.shape,
     action_space_dims=env.action_space.n,
     is_atari=True,
     config=config,
+    use_double_dqn=True,
 )
+
 print(agent.config)
 print(type(agent.memory))
+
 #%%
-############################ Plot ############################
-# obs, _ = env.reset()
-# plt.figure()
-# plt.imshow(obs)
-# plt.title("Original Frame")
-# plt.show()
-# #%%
-# plt.figure()
-# plt.imshow(rl_util.get_preprocessed_frame(obs, (30, -4, -12, 4), 84), cmap="gray")
-# plt.title("Pre Processed image")
-# plt.show()
-# #%%
-# plt.plot([agent.decay_epsilon(i) for i in range(1000)])
-#%%
-# env = gym.make("PongNoFrameskip-v4")
-# obs, _ = env.reset()
-# state = rl_util.stack_frames(None, obs, True)
-# print(state.shape)
-# for j in range(200):
-#     # env.render()
-#     action = agent.select_action(state)
-#     next_state, reward, done, _, _ = env.step(action)
-#     state = rl_util.stack_frames(state, next_state, False)
-#     if done:
-#         break
-# env.close()
-#%%
-save_dir = "result/DQN/atari/"
+save_dir = "result/DDQN/atari/"
 rl_util.create_directory(save_dir)
-save_model_name = ""
+save_model_name = save_dir + env_name + "_mean_score.pt"
 # %%
-rewards_window = deque([], maxlen=20)
-rewards = []
-losses = []
-is_start = True
+state, _ = env.reset()
+episode_rewards = []
+episode_reward = 0
+num_episodes = 0
+best_mean_reward = -10000
 
-for i_episode in tqdm(range(1, agent.config.n_episodes)):
-    state, _ = env.reset()
-    state = rl_util.stack_frames(None, state, True)
-    score = 0
-    eps = agent.decay_epsilon(i_episode)
-    t_step = 0
-    avg_loss = 0
+for t in range(agent.config.num_steps):
+    fraction = min(1.0, float(t) / agent.config.epsilon_decay)
+    eps_threshold = agent.config.epsilon_start + fraction * (
+        agent.config.epsilon_end - agent.config.epsilon_start
+    )
+    # sample = random.random()
+    action = agent.select_action(state, eps_threshold)
+    next_state, reward, done, _, info = env.step(action)
+    agent.store_transition(state, action, reward, next_state, float(done))
+    state = next_state
 
-    while True:
-        # env.render()
-        action = agent.select_action(state, eps)
-        next_state, reward, done, _, info = env.step(action)
-        score += reward
-        next_state = rl_util.stack_frames(state, next_state, False)
-        agent.store_transition(state, action, reward, next_state, done)
+    episode_reward += reward
+    if done:
+        state, _ = env.reset()
+        episode_rewards.append(episode_reward)
+        episode_reward = 0
 
-        t_step = t_step % agent.config.target_update_frequency
+    if t > agent.config.learning_starts and t % agent.config.learning_frequency == 0:
+        agent.update()
 
-        if t_step == 0:
-            if len(agent.memory.replay_buffer) > 20000:
-                if is_start:
-                    print("Start learning...")
-                    is_start = False
-                loss = agent.update()
-                avg_loss += loss
+    if (
+        t > agent.config.learning_starts
+        and t % agent.config.target_update_frequency == 0
+    ):
+        agent.update_target_network()
 
-        state = next_state
-        t_step += 1
-        if done:
-            break
+    num_episodes = len(episode_rewards)
 
-    rewards.append(score)
-    rewards_window.append(score)
-
-    avg_loss = avg_loss / t_step
-    losses.append(avg_loss)
-    mean_rewards = np.mean(rewards_window)
-    if i_episode % 10 == 0:
-        print(
-            f"episode: {i_episode} | average score: {mean_rewards:.4f} | loss: {avg_loss:.4f} | epsilon: {eps:.4f}"
+    if (
+        done
+        and agent.config.print_frequency is not None
+        and len(episode_rewards) % agent.config.print_frequency == 0
+    ):
+        mean_100ep_reward = round(np.mean(episode_rewards[-101:-1]), 1)
+        print("********************************************************")
+        print("steps: {}".format(t))
+        print("episodes: {}".format(num_episodes))
+        print("mean 100 episode reward: {}".format(mean_100ep_reward))
+        print("% epsilon: {}".format(eps_threshold))
+        print("********************************************************")
+        wandb.log(
+            {
+                "episode": num_episodes,
+                "mean reward": mean_100ep_reward,
+                "epsilon": eps_threshold,
+            }
         )
-
-    # if i_episode % 100 == 0:
-    #     print("\rEpisode {}\tAverage Score: {:.2f}".format(i_episode, mean_rewards))
-    #     fig = plt.figure()
-    #     ax = fig.add_subplot(111)
-    #     plt.plot(np.arange(len(rewards)), rewards)
-    #     plt.ylabel("Score")
-    #     plt.xlabel("Episode #")
-    #     plt.show()
-
-env.close()
+        if best_mean_reward < mean_100ep_reward:
+            torch.save(agent.policy_network.state_dict(), save_model_name)
+            print(
+                f"Best mean reward updated {best_mean_reward:.3f} -> {mean_100ep_reward:.3f}, model saved"
+            )
+            best_mean_reward = mean_100ep_reward
+            if mean_100ep_reward > agent.config.mean_reward_bound:
+                print(f"Solved!")
+                break
+            else:
+                if num_episodes > 1000:
+                    break
 
 # %%
 # fig, ax = rl_util.init_2d_figure("Reward")

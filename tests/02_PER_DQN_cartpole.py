@@ -21,14 +21,13 @@ agent = DQNAgent(
     obs_space_shape=env.observation_space.shape,
     action_space_dims=env.action_space.n,
     is_atari=False,
-    buffer_type="priority",
 )
 agent.config.n_episodes = 1000
 agent.config.target_update_frequency = 100
 agent.config.buffer_size = 10000
 agent.config.batch_size = 64
 print(agent.config)
-print(type(agent._memory))
+print(type(agent.memory))
 
 #%%
 save_dir = "result/PER/cartpole/"

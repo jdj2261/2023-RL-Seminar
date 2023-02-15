@@ -15,10 +15,6 @@ class Memory(metaclass=ABCMeta):
     def sample(self, batch_size: int):
         raise NotImplementedError
 
-    @abstractmethod
-    def clear(self):
-        raise NotImplementedError
-
     def __len__(self):
         return len(self._storage)
 

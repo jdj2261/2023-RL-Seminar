@@ -80,6 +80,3 @@ class ReplayMemory(Memory):
         """
         indices = np.random.randint(0, len(self.replay_buffer) - 1, size=batch_size)
         return self._encode_sample(indices)
-
-    def clear(self):
-        self.replay_buffer.clear()

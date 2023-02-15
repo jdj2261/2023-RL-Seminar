@@ -51,7 +51,7 @@ class DQNAgent(Agent):
             self.loss_fn = nn.MSELoss()
 
         # Memory Type
-        self._memory = self._get_memory()
+        self.memory = self._get_memory()
         self.tau = 1e-3
 
     def _get_q_models(self, obs_space_shape, action_space_dims, device, is_atari):
@@ -75,11 +75,10 @@ class DQNAgent(Agent):
         return memory
 
     def select_action(self, state: np.ndarray, eps=0.0):
-        """
-        Select an action greedily from the Q-network given the state
-        :param state: the current state
-        :return: the action to take
-        """
+        assert (
+            isinstance(state) is np.ndarray
+        ), "The type of state must be np.ndarray!!!"
+
         if self.is_atari:
             state = np.array(state) / 255.0
         else:
@@ -95,7 +94,7 @@ class DQNAgent(Agent):
                 return action.item()
 
     def store_transition(self, state, action, reward, next_state, done) -> None:
-        self._memory.store(state, action, reward, next_state, done)
+        self.memory.store(state, action, reward, next_state, done)
 
     def update(self):
         if not self.use_priority:
@@ -196,6 +195,6 @@ class DQNAgent(Agent):
     def update_target_network(self):
         self.target_network.load_state_dict(self.policy_network.state_dict())
 
-    @property
-    def memory(self):
-        return self._memory
+    # @property
+    # def memory(self):
+    #     return self._memory
