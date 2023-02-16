@@ -74,11 +74,7 @@ class DQNAgent(Agent):
             memory = PrioritizedMemory(self.config.buffer_size)
         return memory
 
-    def select_action(self, state: np.ndarray, eps=0.0):
-        assert (
-            isinstance(state) is np.ndarray
-        ), "The type of state must be np.ndarray!!!"
-
+    def select_action(self, state, eps=0.0):
         if self.is_atari:
             state = np.array(state) / 255.0
         else:

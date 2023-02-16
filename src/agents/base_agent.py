@@ -13,9 +13,6 @@ class Agent(metaclass=ABCMeta):
         self.action_space_dims = action_space_dims
         self.config = self._get_config(config)
 
-        self.epsilon = self.config.epsilon_start
-        self.epsilon_decay = 100000
-
     @abstractmethod
     def select_action(self, state):
         raise NotImplementedError
@@ -31,7 +28,7 @@ class Agent(metaclass=ABCMeta):
     def decay_epsilon(self, time_step):
         return max(
             self.config.epsilon_end,
-            self.config.epsilon_start - time_step / self.epsilon_decay,
+            self.config.epsilon_start - time_step / self.config.epsilon_decay,
         )
 
     @staticmethod
@@ -39,12 +36,13 @@ class Agent(metaclass=ABCMeta):
         init_config = Config()
         init_config.device = get_device()
         if config:
-            init_config.num_steps = config.get("num_steps", init_config.num_steps)
+            init_config.n_episodes = config.get("n_episodes", init_config.n_episodes)
+            init_config.max_steps = config.get("max_steps", init_config.max_steps)
             init_config.batch_size = config.get("batch_size", init_config.batch_size)
             init_config.gamma = config.get("gamma", init_config.gamma)
             init_config.lr = config.get("lr", init_config.lr)
-            init_config.learning_starts = config.get(
-                "learning_starts", init_config.learning_starts
+            init_config.replay_start_size = config.get(
+                "replay_start_size", init_config.replay_start_size
             )
             init_config.learning_frequency = config.get(
                 "learning_frequency", init_config.learning_frequency

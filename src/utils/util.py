@@ -11,11 +11,12 @@ from datetime import datetime
 
 def create_config() -> dict:
     config = {}
-    config["num_steps"] = int(1e6)
+    config["n_episodes"] = 1000
+    config["max_steps"] = int(1e6)
     config["batch_size"] = 32
     config["gamma"] = 0.99
     config["lr"] = 1e-4
-    config["learning_starts"] = 10000
+    config["replay_start_size"] = 10000
     config["learning_frequency"] = 1
     config["epsilon_start"] = 1
     config["epsilon_end"] = 0.01
@@ -32,11 +33,12 @@ def create_config() -> dict:
 
 @dataclass
 class Config:
-    num_steps = int(1e6)
+    n_episodes = 1000
+    max_steps = int(1e6)
     batch_size = 32
     gamma = 0.99
     lr = 1e-4
-    learning_starts = 10000
+    replay_start_size = 10000
     learning_frequency = 1
     epsilon_start = 1
     epsilon_end = 0.01
@@ -53,7 +55,11 @@ class Config:
         result = "=" * 10 + " Config Info " + "=" * 10
         result += (
             "\n"
-            + f"{ShellColor.COLOR_CYAN}num_steps:{ShellColor.ENDC} {self.num_steps}"
+            + f"{ShellColor.COLOR_CYAN}n_episodes:{ShellColor.ENDC} {self.n_episodes}"
+        )
+        result += (
+            "\n"
+            + f"{ShellColor.COLOR_CYAN}max_steps:{ShellColor.ENDC} {self.max_steps}"
         )
         result += (
             "\n"
@@ -63,7 +69,7 @@ class Config:
         result += "\n" + f"{ShellColor.COLOR_CYAN}lr:{ShellColor.ENDC} {self.lr}"
         result += (
             "\n"
-            + f"{ShellColor.COLOR_CYAN}learning_starts:{ShellColor.ENDC} {self.learning_starts}"
+            + f"{ShellColor.COLOR_CYAN}replay_start_size:{ShellColor.ENDC} {self.replay_start_size}"
         )
         result += (
             "\n"

@@ -41,7 +41,7 @@ rewards = deque([], maxlen=5)
 total_rewards = []
 losses = []
 frame_idx = 0
-for i_episode in range(agent.config.num_steps):
+for i_episode in range(agent.config.max_steps):
 
     obs, info = env.reset()
     avg_loss = 0

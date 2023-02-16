@@ -51,7 +51,7 @@ episode_reward = 0
 num_episodes = 0
 best_mean_reward = -10000
 
-for t in range(agent.config.num_steps):
+for t in range(agent.config.max_steps):
     fraction = min(1.0, float(t) / agent.config.epsilon_decay)
     eps_threshold = agent.config.epsilon_start + fraction * (
         agent.config.epsilon_end - agent.config.epsilon_start
@@ -68,11 +68,11 @@ for t in range(agent.config.num_steps):
         episode_rewards.append(episode_reward)
         episode_reward = 0
 
-    if t > agent.config.learning_starts and t % agent.config.learning_frequency == 0:
+    if t > agent.config.replay_start_size and t % agent.config.learning_frequency == 0:
         agent.update()
 
     if (
-        t > agent.config.learning_starts
+        t > agent.config.replay_start_size
         and t % agent.config.target_update_frequency == 0
     ):
         agent.update_target_network()
