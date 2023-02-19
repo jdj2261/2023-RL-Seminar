@@ -3,10 +3,8 @@ import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 import random
-
 from src.agents.base_agent import Agent
 from src.commons.memory import PrioritizedMemory
-from src.commons.model import CNNModel, Model
 
 
 class DQNPerAgent(Agent):
@@ -62,7 +60,6 @@ class DQNPerAgent(Agent):
         )
         next_states = torch.from_numpy(next_states).float().to(self.config.device)
         dones = torch.from_numpy(dones).float().to(self.config.device).reshape(-1, 1)
-
         IS_weights = torch.FloatTensor(IS_weights).to(self.config.device).reshape(-1, 1)
 
         cur_q_values = self.policy_network(states).gather(1, actions)

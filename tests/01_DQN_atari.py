@@ -1,9 +1,9 @@
 # %%
 import gymnasium as gym
 import torch
-import matplotlib.pyplot as plt
-import wandb
-from collections import deque
+import numpy as np
+import time
+
 from src.utils.util import ShellColor as sc
 
 print(f"{sc.COLOR_PURPLE}Gym version:{sc.ENDC} {gym.__version__}")
@@ -16,17 +16,19 @@ from src.utils import util as rl_util
 env_name = "PongNoFrameskip-v4"
 env = gym.make(env_name)
 env = gym.wrappers.AtariPreprocessing(
-    env=env, terminal_on_life_loss=True, grayscale_obs=True, scale_obs=False, noop_max=0
+    env=env,
+    terminal_on_life_loss=True,
+    grayscale_obs=True,
+    scale_obs=False,
+    noop_max=30,
 )
-# env = ImageToPyTorch(env)
 env = gym.wrappers.FrameStack(env, num_stack=4)
 rl_util.print_env_info(env=env)
 
-
 # %%
 config = rl_util.create_config()
-config["seed"] = 42
-wandb.init(project="DDQN-Atari", config=config)
+config["print_frequency"] = 20
+config["mean_reward_bound"] = 10
 
 #%%
 agent = DQNAgent(
@@ -40,117 +42,114 @@ print(agent.config)
 print(type(agent.memory))
 
 #%%
-save_dir = "result/DDQN/atari/"
+save_dir = "result/DQN/atari/"
 rl_util.create_directory(save_dir)
-save_model_name = save_dir + env_name + "_mean_score.pt"
+current_time = rl_util.get_current_time_string()
+save_model_name = save_dir + env_name + "_" + current_time + ".pt"
 # %%
-state, _ = env.reset()
-episode_rewards = []
-episode_reward = 0
-num_episodes = 0
-best_mean_reward = -10000
+obs, _ = env.reset()
+episode_returns = []
+episode_return = 0
+episode_losses = []
+episode_loss = 0
+episode = 0
+best_mean_return = -10000
+is_start_train = True
 
+start_time = time.time()
 for t in range(agent.config.max_steps):
-    fraction = min(1.0, float(t) / agent.config.epsilon_decay)
-    eps_threshold = agent.config.epsilon_start + fraction * (
-        agent.config.epsilon_end - agent.config.epsilon_start
-    )
-    # sample = random.random()
-    action = agent.select_action(state, eps_threshold)
-    next_state, reward, done, _, info = env.step(action)
-    agent.store_transition(state, action, reward, next_state, float(done))
-    state = next_state
+    epsilon = agent.decay_epsilon(t)
+    action = agent.select_action(obs, epsilon)
+    next_obs, reward, done, _, _ = env.step(action)
+    agent.store_transition(obs, action, reward, next_obs, done)
+    episode_return += reward
 
-    episode_reward += reward
+    if t > agent.config.start_training_step:
+        if is_start_train:
+            print(f"Start Training at timestep {t}...")
+            is_start_train = False
+
+        episode_loss += agent.update()
+        if t % agent.config.target_update_frequency == 0:
+            agent.update_target_network()
+
     if done:
-        state, _ = env.reset()
-        episode_rewards.append(episode_reward)
-        episode_reward = 0
+        obs, _ = env.reset()
+        episode += 1
+        episode_returns.append(episode_return)
+        episode_losses.append(episode_loss)
+        mean_episode_return = np.mean(episode_returns[-agent.config.print_frequency :])
+        mean_episode_loss = np.mean(episode_losses[-agent.config.print_frequency :])
 
-    if (
-        t > agent.config.start_training_step
-        and t % agent.config.learning_frequency == 0
-    ):
-        agent.update()
+        if episode % agent.config.print_frequency == 0:
+            print(
+                f"step: {t} | episode: {episode} | cur_return: {episode_return:.4f} | mean_return: {mean_episode_return:.4f} | best_mean_return: {best_mean_return:.4f} | loss: {episode_loss:.4f} | epsilon: {epsilon:.4f}"
+            )
 
-    if (
-        t > agent.config.start_training_step
-        and t % agent.config.target_update_frequency == 0
-    ):
-        agent.update_target_network()
-
-    num_episodes = len(episode_rewards)
-
-    if (
-        done
-        and agent.config.print_frequency is not None
-        and len(episode_rewards) % agent.config.print_frequency == 0
-    ):
-        mean_100ep_reward = round(np.mean(episode_rewards[-101:-1]), 1)
-        print("********************************************************")
-        print("steps: {}".format(t))
-        print("episodes: {}".format(num_episodes))
-        print("mean 100 episode reward: {}".format(mean_100ep_reward))
-        print("% epsilon: {}".format(eps_threshold))
-        print("********************************************************")
-        wandb.log(
-            {
-                "episode": num_episodes,
-                "mean reward": mean_100ep_reward,
-                "epsilon": eps_threshold,
-            }
-        )
-        if best_mean_reward < mean_100ep_reward:
+        if best_mean_return < mean_episode_return:
             torch.save(agent.policy_network.state_dict(), save_model_name)
             print(
-                f"Best mean reward updated {best_mean_reward:.3f} -> {mean_100ep_reward:.3f}, model saved"
+                f"Best mean return updated {best_mean_return:.3f} -> {mean_episode_return:.3f}, model saved"
             )
-            best_mean_reward = mean_100ep_reward
-            if mean_100ep_reward > agent.config.mean_reward_bound:
+            best_mean_return = mean_episode_return
+            if mean_episode_return > 200:
                 print(f"Solved!")
                 break
-            else:
-                if num_episodes > 1000:
-                    break
+
+        episode_return = 0
+        episode_loss = 0
+    else:
+        obs = next_obs
+end_time = time.time()
+print(f"WorkingTime[{DQNAgent.__name__}]: {end_time-start_time:.4f} sec\n")
 
 # %%
-# fig, ax = rl_util.init_2d_figure("Reward")
-# rl_util.plot_graph(
-#     ax,
-#     rewards,
-#     title="reward",
-#     ylabel="reward",
-#     save_dir_name=save_dir,
-#     is_save=True,
-# )
-# rl_util.show_figure()
-# fig, ax = rl_util.init_2d_figure("Loss")
-# rl_util.plot_graph(
-#     ax, losses, title="loss", ylabel="loss", save_dir_name=save_dir, is_save=True
-# )
-# rl_util.show_figure()
+fig, ax = rl_util.init_2d_figure("Return")
+rl_util.plot_graph(
+    ax,
+    episode_returns,
+    title="Return",
+    ylabel="Return",
+    save_dir_name=save_dir,
+    is_save=True,
+)
+rl_util.show_figure()
+fig, ax = rl_util.init_2d_figure("Loss")
+rl_util.plot_graph(
+    ax,
+    episode_losses,
+    title="loss",
+    ylabel="loss",
+    save_dir_name=save_dir,
+    is_save=True,
+)
+rl_util.show_figure()
 # %%
+env = gym.make(env_name, render_mode="human")
+env = gym.wrappers.AtariPreprocessing(
+    env=env, terminal_on_life_loss=True, grayscale_obs=True, noop_max=0
+)
+env = gym.wrappers.FrameStack(env, num_stack=4)
 
-# env = gym.make("ALE/Pong-v5", render_mode="human")
-# env = GrayScaleObservation(env, keep_dim=True)
-# env = ResizeObservation(env, 84)
-# env = FrameStack(env, 4)
-# for ep in range(10):
-#     obs, _ = env.reset()
-#     obs = np.squeeze(obs, axis=-1)
-#     total_reward = 0
-#     while True:
-#         env.render()
-#         state = torch.tensor(
-#             obs, dtype=torch.float, device=agent.config.device
-#         ).unsqueeze(0)
-#         action = torch.argmax(agent.policy_network(state)).item()
-#         next_obs, reward, terminated, info = env.step(action)
-#         next_obs = np.squeeze(next_obs, axis=-1)
-#         done = terminated
-#         total_reward += reward
-#         obs = next_obs
-#         if done:
-#             break
-#     print(total_reward)
-# env.close()
+test_agent = DQNAgent(
+    obs_space_shape=env.observation_space.shape,
+    action_space_dims=env.action_space.n,
+    is_atari=True,
+    config=config,
+)
+test_agent.policy_network.load_state_dict(torch.load(save_model_name))
+
+for i_episode in range(1):
+    state, _ = env.reset()
+    test_reward = 0
+    while True:
+        env.render()
+        action = test_agent.select_action(state, 0.0)
+        next_state, reward, terminated, truncated, _ = env.step(action)
+        test_reward += reward
+        state = next_state
+        done = terminated or truncated
+        if done:
+            break
+    print(f"{i_episode} episode Total Reward: {test_reward}")
+env.close()
