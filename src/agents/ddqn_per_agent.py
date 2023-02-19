@@ -63,6 +63,7 @@ class DDQNPerAgent(Agent):
             torch.from_numpy(np.array(next_states)).float().to(self.config.device)
         )
         dones = torch.from_numpy(dones).float().to(self.config.device).reshape(-1, 1)
+        IS_weights = torch.FloatTensor(IS_weights).to(self.config.device).reshape(-1, 1)
 
         cur_q_values = self.policy_network(states).gather(1, actions)
         with torch.no_grad():
@@ -74,8 +75,7 @@ class DDQNPerAgent(Agent):
                 1 - dones
             ) * self.config.gamma * max_next_q_values.view(self.config.batch_size, -1)
 
-        loss = self.loss_fn(cur_q_values, target_q_values)
-
+        loss = torch.mean((cur_q_values - target_q_values) ** 2 * IS_weights)
         # update priority
         errors = (
             torch.abs(target_q_values - cur_q_values).detach().flatten().cpu().numpy()
@@ -87,7 +87,7 @@ class DDQNPerAgent(Agent):
         loss.backward()
         self.optimizer.step()
 
-        return loss.item()
+        return loss.detach().cpu().numpy()
 
     def soft_update_target_network(self):
         for target_param, policy_param in zip(

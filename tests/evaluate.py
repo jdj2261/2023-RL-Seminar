@@ -3,7 +3,7 @@ import torch
 import argparse
 import os
 
-current_dir_path = os.path.abspath(os.path.dirname(__file__))
+current_dir_path = os.path.abspath(os.path.dirname(__file__) + "../")
 from src.utils.util import ShellColor as sc
 
 print(f"{sc.COLOR_PURPLE}Gym version:{sc.ENDC} {gym.__version__}")
@@ -11,7 +11,7 @@ print(f"{sc.COLOR_PURPLE}Pytorch version:{sc.ENDC} {torch.__version__}")
 
 from src.agents import *
 
-# python evaluate.py -e CartPole-v1 -a DQN -c result/DQN/cartpole/CartPole-v1_2023_02_19_04_43_28.pt
+# python evaluate.py -e CartPole-v1 -a DQN -c tests/result/DQN/cartpole/CartPole-v1_2023_02_19_04_43_28.pt
 def get_args():
     ap = argparse.ArgumentParser()
     ap.add_argument(
@@ -80,7 +80,7 @@ test_agent.policy_network.load_state_dict(
     torch.load(os.path.join(current_dir_path, save_model_name))
 )
 
-for i_episode in range(10):
+for i_episode in range(1):
     state, _ = env.reset()
     test_reward = 0
     while True:
