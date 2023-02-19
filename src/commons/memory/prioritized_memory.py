@@ -8,9 +8,9 @@ class PrioritizedMemory(Memory):
     def __init__(self, buffer_size: int) -> None:
         super().__init__(buffer_size)
         self.replay_buffer = SumTree(capacity=buffer_size)
-        eps = 1e-2
+        self.alpha = 0.6
         self.beta = 0.4
-        self.max_priority = eps
+        self.max_priority = 1.0
 
     def store(self, state, action, reward, next_state, done):
         self.replay_buffer.add(
@@ -18,7 +18,7 @@ class PrioritizedMemory(Memory):
         )
 
     def sample(self, batch_size: int):
-        batch = []
+        states, actions, rewards, next_states, dones = [], [], [], [], []
         idxs = []
         priorities = []
         segment = self.replay_buffer.total() / batch_size
@@ -30,81 +30,28 @@ class PrioritizedMemory(Memory):
             idx, p, data = self.replay_buffer.get(s)
             idxs.append(idx)
             priorities.append(p)
-            batch.append(data)
+
+            state, action, reward, next_state, done = data
+            states.append(np.array(state, copy=False))
+            actions.append(np.array(action, copy=False))
+            rewards.append(np.array(reward, copy=False))
+            next_states.append(np.array(next_state, copy=False))
+            dones.append(np.array(done, copy=False))
 
         sampling_probability = priorities / self.replay_buffer.total()
         importance_sampling_weights = np.power(
             self.replay_buffer.n_entries * sampling_probability, -self.beta
         )
         importance_sampling_weights /= importance_sampling_weights.max()
-
+        batch = (
+            np.array(states),
+            np.array(actions),
+            np.array(rewards),
+            np.array(next_states),
+            np.array(dones),
+        )
         return batch, idxs, importance_sampling_weights
 
-    def update(self):
-        pass
-
-
-# class PrioritizedMemory(Memory):
-#     def __init__(self, buffer_size) -> None:
-#         super().__init__(buffer_size)
-#         self.prob_alpha = 0.6
-#         self.position = 0
-#         self.priorities = np.zeros((buffer_size,), dtype=np.float32)
-
-#     def store(self, state, action, reward, next_state, done):
-#         transition = state, action, reward, next_state, done
-#         max_prio = self.priorities.max() if self.replay_buffer else 1.0
-
-#         if self.__len__() < self.buffer_size:
-#             self.replay_buffer.append(transition)
-#         if self.__len__() == self.buffer_size:
-#             self.replay_buffer[self.position] = transition
-
-#         self.priorities[self.position] = max_prio
-#         self.position = (self.position + 1) % self.buffer_size
-
-#     def sample(self, batch_size, beta=0.4):
-
-#         if self.__len__() == self.buffer_size:
-#             prios = self.priorities
-#         else:
-#             prios = self.priorities[: self.position]
-#         probs = prios**self.prob_alpha
-#         probs /= probs.sum()
-
-#         indices = np.random.randint(0, len(self.replay_buffer) - 1, size=batch_size)
-
-#         total = self.__len__()
-#         weights = (total * probs[indices]) ** (-beta)
-#         weights /= weights.max()
-#         weights = np.array(weights, dtype=np.float32)
-
-#         states, actions, rewards, next_states, dones = [], [], [], [], []
-#         for i in indices:
-#             data = self.replay_buffer[i]
-#             state, action, reward, next_state, done = data
-#             states.append(np.array(state, copy=False))
-#             actions.append(action)
-#             rewards.append(reward)
-#             next_states.append(np.array(next_state, copy=False))
-#             dones.append(done)
-
-#         return (
-#             np.array(states),
-#             np.array(actions),
-#             np.array(rewards),
-#             np.array(next_states),
-#             np.array(dones),
-#             indices,
-#             weights,
-#         )
-
-#     def update_priorities(self, batch_indices, batch_priorities):
-#         for idx, prio in zip(batch_indices, batch_priorities):
-#             self.priorities[idx] = prio
-
-#     def clear(self):
-#         pass
-
-#     def __len__(self):
-#         return len(self.replay_buffer)
+    def update_priority(self, idx, td_error):
+        priority = td_error**self.alpha + 1e-6
+        self.replay_buffer.update(idx, priority)

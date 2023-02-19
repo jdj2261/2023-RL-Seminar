@@ -32,53 +32,60 @@ class DQNPerAgent(Agent):
         self.memory = PrioritizedMemory(self.config.buffer_size)
 
         # soft target update parameter
-        self.tau = 1e-3
+        self.tau = 1e-2
 
     def select_action(self, state, eps=0.0):
-        if self.is_atari:
-            state = np.array(state) / 255.0
-        else:
-            state = np.array(state)
-
-        state = torch.from_numpy(state).float().unsqueeze(0).to(self.config.device)
+        state = (
+            torch.from_numpy(np.array(state))
+            .float()
+            .unsqueeze(0)
+            .to(self.config.device)
+        )
         if random.random() < eps:
             return random.choice(np.arange(self.action_space_dims))
         else:
-            with torch.no_grad():
-                q_values = self.policy_network(state)
-                _, action = q_values.max(1)
-                return action.item()
+            q_values = self.policy_network(state).detach()
+            _, action = q_values.max(1)
+            return action.item()
 
     def store_transition(self, state, action, reward, next_state, done) -> None:
         self.memory.store(state, action, reward, next_state, done)
 
     def update(self):
         batches, idxs, IS_weights = self.memory.sample(self.config.batch_size)
-
-        states = np.array(states)
-        next_states = np.array(next_states)
+        states, actions, rewards, next_states, dones = batches
 
         states = torch.from_numpy(states).float().to(self.config.device)
-        actions = torch.from_numpy(actions).long().to(self.config.device)
-        rewards = torch.from_numpy(rewards).float().to(self.config.device)
-        next_states = torch.from_numpy(next_states).float().to(self.config.device)
-        dones = torch.from_numpy(dones).float().to(self.config.device)
-        IS_weights = torch.FloatTensor(IS_weights).to(self.config.device)
-
-        predicted_q_values = self.policy_network(states).gather(1, actions)
-        next_q_values = self.target_net(next_states).detach()
-        target_q_values = rewards + self.config.gamma * next_q_values.max(1)[0].view(
-            (self.config.batch_size, 1)
+        actions = torch.from_numpy(actions).long().to(self.config.device).reshape(-1, 1)
+        rewards = (
+            torch.from_numpy(rewards).float().to(self.config.device).reshape(-1, 1)
         )
-        loss = self.loss_fn(predicted_q_values, target_q_values)
+        next_states = torch.from_numpy(next_states).float().to(self.config.device)
+        dones = torch.from_numpy(dones).float().to(self.config.device).reshape(-1, 1)
+
+        IS_weights = torch.FloatTensor(IS_weights).to(self.config.device).reshape(-1, 1)
+
+        cur_q_values = self.policy_network(states).gather(1, actions)
+        with torch.no_grad():
+            next_q_values = self.target_network(next_states).detach()
+            max_next_q_values, _ = next_q_values.max(1)
+            target_q_values = rewards + (
+                1 - dones
+            ) * self.config.gamma * max_next_q_values.view(self.config.batch_size, -1)
+
+        loss = self.loss_fn(cur_q_values, target_q_values)
+
+        # update priority
+        errors = (
+            torch.abs(target_q_values - cur_q_values).detach().flatten().cpu().numpy()
+        )
+        for idx, error in zip(idxs, errors):
+            self.memory.update_priority(idx, error)
 
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
-
-        del states
-        del next_states
-        return loss
+        return loss.detach().cpu().numpy()
 
     def soft_update_target_network(self):
         for target_param, policy_param in zip(
