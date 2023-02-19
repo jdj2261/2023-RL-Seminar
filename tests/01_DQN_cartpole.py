@@ -27,6 +27,7 @@ config["gamma"] = 0.99
 config["update_frequency"] = 4
 config["lr"] = 0.001
 config["print_frequency"] = 5
+config["mean_reward_bound"] = 490
 
 # %%
 agent = DQNAgent(
@@ -94,7 +95,7 @@ for t in range(agent.config.max_steps):
                 f"Best mean return updated {best_mean_return:.3f} -> {mean_episode_return:.3f}, model saved"
             )
             best_mean_return = mean_episode_return
-            if mean_episode_return > 490:
+            if mean_episode_return > agent.config.mean_reward_bound:
                 print(f"Solved!")
                 break
 

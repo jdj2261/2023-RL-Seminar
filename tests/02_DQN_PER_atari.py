@@ -93,7 +93,7 @@ for t in range(agent.config.max_steps):
                     f"Best mean return updated {best_mean_return:.3f} -> {mean_episode_return:.3f}, model saved"
                 )
                 best_mean_return = mean_episode_return
-                if mean_episode_return > 10:
+                if mean_episode_return > agent.config.mean_reward_bound:
                     print(f"Solved!")
                     break
         episode_return = 0

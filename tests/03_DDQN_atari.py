@@ -2,6 +2,7 @@
 import gymnasium as gym
 import torch
 import numpy as np
+import time
 from src.utils.util import ShellColor as sc
 
 print(f"{sc.COLOR_PURPLE}Gym version:{sc.ENDC} {gym.__version__}")
@@ -58,6 +59,7 @@ episode = 0
 best_mean_return = -10000
 is_start_train = True
 
+start_time = time.time()
 for t in range(agent.config.max_steps):
     epsilon = agent.decay_epsilon(t)
     action = agent.select_action(obs, epsilon)
@@ -93,7 +95,7 @@ for t in range(agent.config.max_steps):
                 f"Best mean return updated {best_mean_return:.3f} -> {mean_episode_return:.3f}, model saved"
             )
             best_mean_return = mean_episode_return
-            if mean_episode_return > 200:
+            if mean_episode_return > agent.config.mean_reward_bound:
                 print(f"Solved!")
                 break
 
@@ -101,6 +103,9 @@ for t in range(agent.config.max_steps):
         episode_loss = 0
     else:
         obs = next_obs
+
+end_time = time.time()
+print(f"WorkingTime[{DDQNAgent.__name__}]: {end_time-start_time:.4f} sec\n")
 #%%
 fig, ax = rl_util.init_2d_figure("Reward")
 rl_util.plot_graph(

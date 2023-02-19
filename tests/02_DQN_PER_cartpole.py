@@ -2,6 +2,7 @@
 import gymnasium as gym
 import torch
 import numpy as np
+import time
 from src.utils.util import ShellColor as sc
 
 print(f"{sc.COLOR_PURPLE}Gym version:{sc.ENDC} {gym.__version__}")
@@ -24,6 +25,7 @@ config["gamma"] = 0.99
 config["update_frequency"] = 4
 config["lr"] = 0.001
 config["print_frequency"] = 5
+config["mean_reward_bound"] = 490
 #%%
 agent = DQNPerAgent(
     obs_space_shape=env.observation_space.shape,
@@ -51,6 +53,8 @@ best_mean_return = -10000
 is_start_train = True
 cnt = 0
 epsilon = agent.config.epsilon_start
+
+start_time = time.time()
 for t in range(agent.config.max_steps):
     cnt += 1
     action = agent.select_action(obs, epsilon)
@@ -88,7 +92,7 @@ for t in range(agent.config.max_steps):
                 f"Best mean return updated {best_mean_return:.3f} -> {mean_episode_return:.3f}, model saved"
             )
             best_mean_return = mean_episode_return
-            if mean_episode_return > 490:
+            if mean_episode_return > agent.config.mean_reward_bound:
                 print(f"Solved!")
                 break
 
@@ -96,7 +100,8 @@ for t in range(agent.config.max_steps):
         episode_loss = 0
     else:
         obs = next_obs
-
+end_time = time.time()
+print(f"WorkingTime[{DQNPerAgent.__name__}]: {end_time-start_time:.4f} sec\n")
 #%%
 fig, ax = rl_util.init_2d_figure("Reward")
 rl_util.plot_graph(
@@ -127,7 +132,7 @@ test_agent = DQNPerAgent(
     obs_space_shape=env.observation_space.shape,
     action_space_dims=env.action_space.n,
     is_atari=False,
-    config=config
+    config=config,
 )
 
 # file_name = save_dir + "CartPole-v1_mean_score.pt"
@@ -138,7 +143,7 @@ for i_episode in range(1):
     test_reward = 0
     while True:
         env.render()
-        action = test_agent.select_action(state, 0.)
+        action = test_agent.select_action(state, 0.0)
         next_state, reward, terminated, truncated, _ = env.step(action)
         test_reward += reward
         state = next_state
