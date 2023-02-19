@@ -1,5 +1,6 @@
 from abc import *
 from src.utils.util import Config, get_device
+from src.commons.model import CNNModel, Model
 
 
 class Agent(metaclass=ABCMeta):
@@ -12,6 +13,9 @@ class Agent(metaclass=ABCMeta):
         self.obs_space_shape = obs_space_shape
         self.action_space_dims = action_space_dims
         self.config = self._get_config(config)
+
+        self.epsilon = self.config.epsilon_start
+        self.epsilon_decay = 0.001
 
     @abstractmethod
     def select_action(self, state):
@@ -31,6 +35,23 @@ class Agent(metaclass=ABCMeta):
             self.config.epsilon_start - time_step / self.config.epsilon_decay,
         )
 
+    # def decay_epsilon(self):
+    #     self.epsilon = max(self.config.epsilon_end, self.epsilon - self.epsilon_decay)
+
+    @staticmethod
+    def _get_q_models(obs_space_shape, action_space_dims, device, is_atari):
+        if not is_atari:
+            target_network = Model(obs_space_shape, action_space_dims).to(device)
+            policy_network = Model(obs_space_shape, action_space_dims).to(device)
+        else:
+            target_network = CNNModel(obs_space_shape, action_space_dims).to(
+                device, non_blocking=True
+            )
+            policy_network = CNNModel(obs_space_shape, action_space_dims).to(
+                device, non_blocking=True
+            )
+        return target_network, policy_network
+
     @staticmethod
     def _get_config(config: dict) -> Config:
         init_config = Config()
@@ -41,8 +62,8 @@ class Agent(metaclass=ABCMeta):
             init_config.batch_size = config.get("batch_size", init_config.batch_size)
             init_config.gamma = config.get("gamma", init_config.gamma)
             init_config.lr = config.get("lr", init_config.lr)
-            init_config.replay_start_size = config.get(
-                "replay_start_size", init_config.replay_start_size
+            init_config.start_training_step = config.get(
+                "start_training_step", init_config.start_training_step
             )
             init_config.learning_frequency = config.get(
                 "learning_frequency", init_config.learning_frequency
@@ -58,7 +79,6 @@ class Agent(metaclass=ABCMeta):
             init_config.target_update_frequency = config.get(
                 "target_update_frequency", init_config.target_update_frequency
             )
-            init_config.buffer_type = config.get("buffer_type", init_config.buffer_type)
             init_config.buffer_size = config.get("buffer_size", init_config.buffer_size)
             init_config.mean_reward_bound = config.get(
                 "mean_reward_bound", init_config.mean_reward_bound

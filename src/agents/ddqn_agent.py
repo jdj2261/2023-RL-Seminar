@@ -33,7 +33,7 @@ class DDQNAgent(Agent):
         self.optimizer = optim.Adam(self.policy_network.parameters(), lr=self.config.lr)
 
         if self.is_atari:
-            self.loss_fn = nn.SmoothL1Loss()
+            self.loss_fn = nn.HuberLoss()
         else:
             self.loss_fn = nn.MSELoss()
 

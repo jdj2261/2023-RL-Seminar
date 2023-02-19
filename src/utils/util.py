@@ -11,20 +11,19 @@ from datetime import datetime
 
 def create_config() -> dict:
     config = {}
-    config["n_episodes"] = 1000
-    config["max_steps"] = int(1e6)
+    config["n_episodes"] = 2000
+    config["max_steps"] = int(2e6)
     config["batch_size"] = 32
     config["gamma"] = 0.99
     config["lr"] = 1e-4
-    config["replay_start_size"] = 10000
+    config["start_training_step"] = 10000
     config["learning_frequency"] = 1
-    config["epsilon_start"] = 1
+    config["epsilon_start"] = 0.95
     config["epsilon_end"] = 0.01
     config["dpsilon_decay"] = 0.1
     config["seed"] = 0
     config["target_update_frequency"] = 1000
-    config["buffer_type"] = "uniform"
-    config["buffer_size"] = int(5e3)
+    config["buffer_size"] = int(5e4)
     config["device"] = "cpu"
     config["mean_reward_bound"] = 10
     config["print_frequency"] = 10
@@ -33,20 +32,19 @@ def create_config() -> dict:
 
 @dataclass
 class Config:
-    n_episodes = 1000
-    max_steps = int(1e6)
+    n_episodes = 2000
+    max_steps = int(2e6)
     batch_size = 32
     gamma = 0.99
     lr = 1e-4
-    replay_start_size = 10000
+    start_training_step = 10000
     learning_frequency = 1
     epsilon_start = 1
     epsilon_end = 0.01
-    epsilon_decay = 100000
+    epsilon_decay = max_steps * 0.15
     seed = 0
     target_update_frequency = 1000
-    buffer_type = "uniform"
-    buffer_size = int(5e3)
+    buffer_size = int(5e4)
     device = "cpu"
     mean_reward_bound = 10
     print_frequency = 10
@@ -69,7 +67,7 @@ class Config:
         result += "\n" + f"{ShellColor.COLOR_CYAN}lr:{ShellColor.ENDC} {self.lr}"
         result += (
             "\n"
-            + f"{ShellColor.COLOR_CYAN}replay_start_size:{ShellColor.ENDC} {self.replay_start_size}"
+            + f"{ShellColor.COLOR_CYAN}start_training_step:{ShellColor.ENDC} {self.start_training_step}"
         )
         result += (
             "\n"
@@ -91,10 +89,6 @@ class Config:
         result += (
             "\n"
             + f"{ShellColor.COLOR_CYAN}target_update_frequency:{ShellColor.ENDC} {self.target_update_frequency}"
-        )
-        result += (
-            "\n"
-            + f"{ShellColor.COLOR_CYAN}buffer_type:{ShellColor.ENDC} {self.buffer_type}"
         )
         result += (
             "\n"

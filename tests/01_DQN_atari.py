@@ -34,7 +34,6 @@ agent = DQNAgent(
     action_space_dims=env.action_space.n,
     is_atari=True,
     config=config,
-    use_double_dqn=True,
 )
 
 print(agent.config)
@@ -68,11 +67,14 @@ for t in range(agent.config.max_steps):
         episode_rewards.append(episode_reward)
         episode_reward = 0
 
-    if t > agent.config.replay_start_size and t % agent.config.learning_frequency == 0:
+    if (
+        t > agent.config.start_training_step
+        and t % agent.config.learning_frequency == 0
+    ):
         agent.update()
 
     if (
-        t > agent.config.replay_start_size
+        t > agent.config.start_training_step
         and t % agent.config.target_update_frequency == 0
     ):
         agent.update_target_network()

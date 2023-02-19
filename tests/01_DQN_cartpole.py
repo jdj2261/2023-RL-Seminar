@@ -13,7 +13,9 @@ from src.utils import util as rl_util
 
 #%%
 # env = gym.make("CartPole-v1", render_mode="human")
-env = gym.make("CartPole-v1")
+
+env_name = "CartPole-v1"
+env = gym.make(env_name)
 rl_util.print_env_info(env=env)
 env.observation_space.shape
 # %%
@@ -21,7 +23,8 @@ config = rl_util.create_config()
 config["batch_size"] = 32
 config["buffer_size"] = 30000
 config["gamma"] = 0.99
-config["target_update_frequency"] = 4
+config["update_frequency"] = 4
+config["lr"] = 0.001
 
 agent = DQNAgent(
     obs_space_shape=env.observation_space.shape,
@@ -35,43 +38,46 @@ print(type(agent.memory))
 #%%
 save_dir = "result/DQN/cartpole/"
 rl_util.create_directory(save_dir)
-save_model_name = ""
+current_time = rl_util.get_current_time_string()
+save_model_name = save_dir + env_name + "_" + current_time + ".pt"
+
 # %%
 rewards = deque([], maxlen=5)
 total_rewards = []
 losses = []
-frame_idx = 0
-for i_episode in range(agent.config.max_steps):
-
+time_step = 0
+epsilon = agent.config.epsilon_start
+for i_episode in range(agent.config.n_episodes):
     obs, info = env.reset()
     avg_loss = 0
     len_game_progress = 0
     test_reward = 0
     while True:
         # env.render()
-        frame_idx += 1
-        eps = agent.decay_epsilon(frame_idx)
-        action = agent.select_action(obs, eps)
+        action = agent.select_action(obs, epsilon)
         next_obs, reward, terminated, truncated, info = env.step(action)
+        test_reward += reward
         done = terminated or truncated
         agent.store_transition(obs, action, reward, next_obs, done)
 
         if len(agent.memory.replay_buffer) > 1000:
-            loss = agent.update()
-            avg_loss += loss
+            avg_loss += agent.update()
+            agent.soft_update_target_network()
+            # avg_loss += agent.loss
 
-        agent.update_target_network()
         obs = next_obs
         len_game_progress += 1
-        test_reward += reward
         if done:
             break
 
+    epsilon = max(agent.config.epsilon_end, epsilon - agent.epsilon_decay)
     avg_loss /= len_game_progress
 
     if (i_episode) % 20 == 0:
+
+        # test_reward = evaluate_agent(agent.q_predict)
         print(
-            f"episode: {i_episode} | cur_reward: {test_reward:.4f} | loss: {avg_loss:.4f} | epsilon: {eps:.4f}"
+            f"episode: {i_episode} | cur_reward: {test_reward:.4f} | loss: {avg_loss:.4f} | epsilon: {epsilon:.4f}"
         )
         rewards.append(test_reward)
         total_rewards.append(test_reward)
@@ -84,7 +90,7 @@ for i_episode in range(agent.config.max_steps):
         print(f"Save model {save_model_name} | episode is {(i_episode)}")
         torch.save(agent.policy_network.state_dict(), save_model_name)
         break
-
+    time_step += 1
 env.close()
 
 #%%
@@ -105,34 +111,21 @@ rl_util.plot_graph(
 )
 rl_util.show_figure()
 
-#%%
-test_agent = DQNAgent(
-    obs_space_shape=env.observation_space.shape,
-    action_space_dims=env.action_space.n,
-    is_atari=False,
-    config=config,
-)
-print(test_agent.config)
-
-save_dir = "result/DQN/cartpole/"
-file_name = "checkpoint_2023_02_13_09_22_54.pt"
-print(save_dir + file_name)
-test_agent.policy_network.load_state_dict(torch.load(save_dir + file_name))
 
 # %%
 # load the weights from file
 env = gym.make("CartPole-v1", render_mode="human")
 for ep in range(10):
-    obs, _ = env.reset()
+    observation, _ = env.reset()
     total_reward = 0
     while True:
         env.render()
-        state = torch.tensor(obs, dtype=torch.float, device=test_agent.config.device)
-        action = torch.argmax(test_agent.policy_network(state)).item()
+        state = torch.tensor(observation, dtype=torch.float, device=agent.config.device)
+        action = torch.argmax(agent.policy_network(state)).item()
         next_obs, reward, terminated, truncated, info = env.step(action)
         done = terminated or truncated
         total_reward += reward
-        obs = next_obs
+        observation = next_obs
         if done:
             break
     print(total_reward)

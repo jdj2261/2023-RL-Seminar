@@ -1,5 +1,5 @@
-import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 
 class Model(nn.Module):
@@ -23,61 +23,20 @@ class Model(nn.Module):
 
 class CNNModel(nn.Module):
     def __init__(self, input_shape: tuple, action_space_dims: int):
-        assert action_space_dims > 0
+        super(CNNModel, self).__init__()
 
         print(f"Model Initializing... An input shape is {input_shape}")
         obs_space_dims = input_shape[0]
-        h, w = input_shape[1], input_shape[1]
-        super(CNNModel, self).__init__()
-
-        self.features = nn.Sequential(
-            nn.Conv2d(obs_space_dims, 32, kernel_size=8, stride=4),
-            # nn.BatchNorm2d(32),
-            nn.ReLU(),
-            nn.Conv2d(32, 64, kernel_size=4, stride=2),
-            # nn.BatchNorm2d(64),
-            nn.ReLU(),
-            nn.Conv2d(64, 64, kernel_size=3, stride=1),
-            # nn.BatchNorm2d(64),
-            nn.ReLU(),
-        )
-
-        convh, convw = self.get_conv2d_screen_size(h, w, kernel_size=8, stride=4)
-        convh, convw = self.get_conv2d_screen_size(
-            convh, convw, kernel_size=4, stride=2
-        )
-        convh, convw = self.get_conv2d_screen_size(
-            convh, convw, kernel_size=3, stride=1
-        )
-
-        self.fc = nn.Sequential(
-            nn.Linear(convh * convw * 64, 512),
-            nn.ReLU(),
-            nn.Linear(512, action_space_dims),
-        )
-
-        self.apply(self._init_weights)
-
-    def get_conv2d_screen_size(
-        self, h: int, w: int, kernel_size: int = 1, stride: int = 1, padding: int = 0
-    ) -> tuple:
-        """
-        Calcs conv layers output image sizes
-        """
-        # (((W - K + 2P)/S) + 1)
-        output_h = (h - kernel_size + 2 * padding) // stride + 1
-        output_w = (w - kernel_size + 2 * padding) // stride + 1
-
-        return (output_h, output_w)
+        self.conv_layer_1 = nn.Conv2d(obs_space_dims, 32, kernel_size=8, stride=4)
+        self.conv_layer_2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
+        self.conv_layer_3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
+        self.dense_layer = nn.Linear(7 * 7 * 64, 256)
+        self.out_layer = nn.Linear(256, action_space_dims)
 
     def forward(self, x):
-        x = self.features(x)
-        x = torch.flatten(x, start_dim=1)
-        x = self.fc(x)
-        # print(x.shape)
-        return x
-
-    def _init_weights(self, moodule):
-        if isinstance(moodule, nn.Linear):
-            torch.nn.init.xavier_uniform_(moodule.weight)
-            moodule.bias.data.fill_(0.01)
+        x = x / 255.0
+        x = F.relu(self.conv_layer_1(x))
+        x = F.relu(self.conv_layer_2(x))
+        x = F.relu(self.conv_layer_3(x))
+        x = F.relu(self.dense_layer(x.view(x.size(0), -1)))
+        return self.out_layer(x)

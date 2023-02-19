@@ -19,7 +19,7 @@ This repository will be updated every 2 weeks with new algorithm implementations
 
 5. [Unifying Count-Based Exploration and Intrinsic Motivation](https://arxiv.org/pdf/1606.01868.pdf)
 
-6. [Deep Q-learning from Demonstrations](https://www.notion.so/Deep-Q-learning-from-Demonstrations-286cfedc31214d4f9da8f832129670f4)
+6. [Deep Q-learning from Demonstrations](https://arxiv.org/pdf/1704.03732.pdf)
 
 7. [Trust Region Policy Optimization](https://arxiv.org/pdf/1502.05477.pdf)
 
