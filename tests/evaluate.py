@@ -80,7 +80,7 @@ test_agent.policy_network.load_state_dict(
     torch.load(os.path.join(current_dir_path, save_model_name))
 )
 
-for i_episode in range(1):
+for i_episode in range(10):
     state, _ = env.reset()
     test_reward = 0
     while True:

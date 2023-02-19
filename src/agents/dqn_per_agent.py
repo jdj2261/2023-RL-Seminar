@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import torch.nn.functional as F
 import numpy as np
 import random
 from src.agents.base_agent import Agent
@@ -70,8 +71,7 @@ class DQNPerAgent(Agent):
                 1 - dones
             ) * self.config.gamma * max_next_q_values.view(self.config.batch_size, -1)
 
-        loss = self.loss_fn(cur_q_values, target_q_values)
-
+        loss = torch.mean((cur_q_values - target_q_values) ** 2 * IS_weights)
         # update priority
         errors = (
             torch.abs(target_q_values - cur_q_values).detach().flatten().cpu().numpy()

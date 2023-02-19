@@ -86,15 +86,15 @@ for t in range(agent.config.max_steps):
                 f"step: {t} | episode: {episode} | cur_return: {episode_return:.4f} | mean_return: {mean_episode_return:.4f} | best_mean_return: {best_mean_return:.4f} | loss: {episode_loss:.4f} | epsilon: {epsilon:.4f}"
             )
 
-            if best_mean_return < mean_episode_return:
-                torch.save(agent.policy_network.state_dict(), save_model_name)
-                print(
-                    f"Best mean return updated {best_mean_return:.3f} -> {mean_episode_return:.3f}, model saved"
-                )
-                best_mean_return = mean_episode_return
-                if mean_episode_return > agent.config.mean_reward_bound:
-                    print(f"Solved!")
-                    break
+        if best_mean_return < mean_episode_return:
+            torch.save(agent.policy_network.state_dict(), save_model_name)
+            print(
+                f"Best mean return updated {best_mean_return:.3f} -> {mean_episode_return:.3f}, model saved"
+            )
+            best_mean_return = mean_episode_return
+            if mean_episode_return > agent.config.mean_reward_bound:
+                print(f"Solved!")
+                break
         episode_return = 0
         episode_loss = 0
     else:
