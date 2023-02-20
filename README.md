@@ -97,7 +97,7 @@ export PYTHONPATH="/Users/jindaejong/2023-RL-Seminar:$PYTHONPATH"
 
 - Render video  
 
-  <img src="imgs/DQNPerAgent-PongNoFrameskip-v4.gif" align="left">
+  ![output](imgs/DQNPerAgent-PongNoFrameskip-v4.gif)
 
 ---
 
