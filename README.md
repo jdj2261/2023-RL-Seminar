@@ -103,7 +103,9 @@ export PYTHONPATH="/Users/jindaejong/2023-RL-Seminar:$PYTHONPATH"
 
 - Total Reward
 
-![output](imgs/output.png)
+  ![output](imgs/output.png)
+
+
 
 ---
 
