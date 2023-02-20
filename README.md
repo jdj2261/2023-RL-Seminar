@@ -95,11 +95,15 @@ export PYTHONPATH="/Users/jindaejong/2023-RL-Seminar:$PYTHONPATH"
 
 ## Result
 
-- Render video
+- Render video  
 
   <img src="imgs/DQNPerAgent-PongNoFrameskip-v4.gif" align="left">
 
- <br/>
+   
+
+<br/>
+
+  
 
 - Total Reward
 
