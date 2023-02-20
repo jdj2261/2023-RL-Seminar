@@ -99,15 +99,13 @@ export PYTHONPATH="/Users/jindaejong/2023-RL-Seminar:$PYTHONPATH"
 
   <img src="imgs/DQNPerAgent-PongNoFrameskip-v4.gif" align="left">
 
-   
-
-<br/>
-
-  
+---
 
 - Total Reward
 
-  ![output](imgs/output.png)
+![output](imgs/output.png)
+
+---
 
 - Loss
 
