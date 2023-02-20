@@ -68,13 +68,9 @@ class Agent(metaclass=ABCMeta):
             init_config.learning_frequency = config.get(
                 "learning_frequency", init_config.learning_frequency
             )
-            init_config.epsilon_start = config.get(
-                "epsilon_start", init_config.epsilon_start
-            )
+            init_config.epsilon_start = config.get("epsilon_start", init_config.epsilon_start)
             init_config.epsilon_end = config.get("epsilon_end", init_config.epsilon_end)
-            init_config.epsilon_decay = config.get(
-                "epsilon_decay", init_config.epsilon_decay
-            )
+            init_config.epsilon_decay = config.get("epsilon_decay", init_config.epsilon_decay)
             init_config.seed = config.get("seed", init_config.seed)
             init_config.target_update_frequency = config.get(
                 "target_update_frequency", init_config.target_update_frequency
@@ -83,7 +79,5 @@ class Agent(metaclass=ABCMeta):
             init_config.mean_reward_bound = config.get(
                 "mean_reward_bound", init_config.mean_reward_bound
             )
-            init_config.print_frequency = config.get(
-                "print_frequency", init_config.print_frequency
-            )
+            init_config.print_frequency = config.get("print_frequency", init_config.print_frequency)
         return init_config

@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
 import random
@@ -32,13 +31,10 @@ class DQNAgent(Agent):
         self.memory = ReplayMemory(self.config.buffer_size)
         self.tau = 1e-2
 
+        self.agent_name = DQNAgent.__name__
+
     def select_action(self, state, eps=0.0):
-        state = (
-            torch.from_numpy(np.array(state))
-            .float()
-            .unsqueeze(0)
-            .to(self.config.device)
-        )
+        state = torch.from_numpy(np.array(state)).float().unsqueeze(0).to(self.config.device)
         if random.random() < eps:
             return random.choice(np.arange(self.action_space_dims))
         else:
@@ -50,27 +46,21 @@ class DQNAgent(Agent):
         self.memory.store(state, action, reward, next_state, done)
 
     def update(self):
-        states, actions, rewards, next_states, dones = self.memory.sample(
-            self.config.batch_size
-        )
+        states, actions, rewards, next_states, dones = self.memory.sample(self.config.batch_size)
 
         states = torch.from_numpy(np.array(states)).float().to(self.config.device)
         actions = torch.from_numpy(actions).long().to(self.config.device).reshape(-1, 1)
-        rewards = (
-            torch.from_numpy(rewards).float().to(self.config.device).reshape(-1, 1)
-        )
-        next_states = (
-            torch.from_numpy(np.array(next_states)).float().to(self.config.device)
-        )
+        rewards = torch.from_numpy(rewards).float().to(self.config.device).reshape(-1, 1)
+        next_states = torch.from_numpy(np.array(next_states)).float().to(self.config.device)
         dones = torch.from_numpy(dones).float().to(self.config.device).reshape(-1, 1)
 
         cur_q_values = self.policy_network(states).gather(1, actions)
         with torch.no_grad():
             next_q_values = self.target_network(next_states).detach()
             max_next_q_values, _ = next_q_values.max(1)
-            target_q_values = rewards + (
-                1 - dones
-            ) * self.config.gamma * max_next_q_values.view(self.config.batch_size, -1)
+            target_q_values = rewards + (1 - dones) * self.config.gamma * max_next_q_values.view(
+                self.config.batch_size, -1
+            )
 
         loss = self.loss_fn(cur_q_values, target_q_values)
         self.optimizer.zero_grad()

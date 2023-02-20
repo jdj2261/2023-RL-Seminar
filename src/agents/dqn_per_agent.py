@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import torch.nn.functional as F
 import numpy as np
 import random
 from src.agents.base_agent import Agent
@@ -33,13 +32,10 @@ class DQNPerAgent(Agent):
         # soft target update parameter
         self.tau = 1e-2
 
+        self.agent_name = DQNPerAgent.__name__
+
     def select_action(self, state, eps=0.0):
-        state = (
-            torch.from_numpy(np.array(state))
-            .float()
-            .unsqueeze(0)
-            .to(self.config.device)
-        )
+        state = torch.from_numpy(np.array(state)).float().unsqueeze(0).to(self.config.device)
         if random.random() < eps:
             return random.choice(np.arange(self.action_space_dims))
         else:
@@ -56,9 +52,7 @@ class DQNPerAgent(Agent):
 
         states = torch.from_numpy(states).float().to(self.config.device)
         actions = torch.from_numpy(actions).long().to(self.config.device).reshape(-1, 1)
-        rewards = (
-            torch.from_numpy(rewards).float().to(self.config.device).reshape(-1, 1)
-        )
+        rewards = torch.from_numpy(rewards).float().to(self.config.device).reshape(-1, 1)
         next_states = torch.from_numpy(next_states).float().to(self.config.device)
         dones = torch.from_numpy(dones).float().to(self.config.device).reshape(-1, 1)
         IS_weights = torch.FloatTensor(IS_weights).to(self.config.device).reshape(-1, 1)
@@ -67,15 +61,13 @@ class DQNPerAgent(Agent):
         with torch.no_grad():
             next_q_values = self.target_network(next_states).detach()
             max_next_q_values, _ = next_q_values.max(1)
-            target_q_values = rewards + (
-                1 - dones
-            ) * self.config.gamma * max_next_q_values.view(self.config.batch_size, -1)
+            target_q_values = rewards + (1 - dones) * self.config.gamma * max_next_q_values.view(
+                self.config.batch_size, -1
+            )
 
         loss = torch.mean((cur_q_values - target_q_values) ** 2 * IS_weights)
         # update priority
-        errors = (
-            torch.abs(target_q_values - cur_q_values).detach().flatten().cpu().numpy()
-        )
+        errors = torch.abs(target_q_values - cur_q_values).detach().flatten().cpu().numpy()
         for idx, error in zip(idxs, errors):
             self.memory.update_priority(idx, error)
 
