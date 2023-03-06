@@ -35,9 +35,6 @@ class Agent(metaclass=ABCMeta):
             self.config.epsilon_start - time_step / self.config.epsilon_decay,
         )
 
-    # def decay_epsilon(self):
-    #     self.epsilon = max(self.config.epsilon_end, self.epsilon - self.epsilon_decay)
-
     @staticmethod
     def _get_q_models(obs_space_shape, action_space_dims, device, is_atari):
         if not is_atari:
