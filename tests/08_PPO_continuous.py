@@ -2,47 +2,20 @@ import os
 import gymnasium as gym
 import torch
 
-
-
 import sys
 sys.path.append(os.getcwd() + "/..")
-
+sys.path.append(os.getcwd())
 
 from src.agents.ppo_agent import PPOAgent
-from src.utils.util import get_device
-
-def get_ppo_config():
-    env_config = {
-        "env_name" : "Walker2d-v4",
-        "max_ep_timesteps" : 1000,
-    }
-
-    training_config = {
-        "max_training_timesteps" : int(1e8),
-        "action_std" : 0.6,
-        "action_std_decay_rate" : 0.03,
-        "min_action_std" : 0.1,
-        "action_std_decay_freq" : int(2.5e5),
-        "eps_clip" : 0.2,
-        "gamma" : 0.99,
-        "K_epochs" : 80
-    }
-
-    network_config = {
-        "lr_actor" : 0.0003,
-        "lr_critic" : 0.001,
-        "net_width" : 64
-    }
-
-    return env_config, training_config, network_config
+from src.utils.util import create_ppo_config, get_current_time_string
 
 
 def train():
+    # Print current device
     device_name = torch.cuda.get_device_name() if torch.cuda.is_available() else "cpu"
-    print(f"Device set to : {device_name}")
-    print("="*50)
+    print(f"Device set to : {device_name}\n")
     
-    env_config, training_config, network_config = get_ppo_config()
+    env_config, training_config, network_config = create_ppo_config()
 
     # Get environment setting
     env_name = env_config["env_name"]
@@ -64,76 +37,70 @@ def train():
     lr_critic = network_config["lr_critic"]
     net_width = network_config["net_width"]
     
-    # Additional setting
+    # Get additional setting
     print_freq = max_ep_timesteps * 10
-    log_freq = max_ep_timesteps * 2
     save_model_freq = int(1e5)
     random_seed = 0
 
-
+    # Initialize environment
     env = gym.make(env_name)
     state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.shape[0]
 
-
-    print("="*50)
     print(f"Current environment name : {env_name}")
-    
-
-    directory = "PPO_preTrained"
-    os.makedirs(directory, exist_ok=True)
-
-    directory = directory + '/' + env_name + '/'
-    os.makedirs(directory, exist_ok=True)
-
-    ckpt_path = directory + f"PPO_{env_name}.pth"
-    print(f"Save checkpoint path : {ckpt_path}")
+    print(f"State space dimension : {state_dim}")
+    print(f"Action space dimension : {action_dim}")
+    print(f"Maximum episode time step : {max_ep_timesteps}")
+    # Create pretrained model checkpoint directory
+    pretrained_dir = os.path.join(os.getcwd(), "tests", "result", "PPO", f"{env_name}")
+    os.makedirs(pretrained_dir, exist_ok=True)
+    ckpt_path = os.path.join(pretrained_dir, f"{env_name}_{get_current_time_string()}.pt")
+    print(f"Save checkpoint path : {ckpt_path}\n")
 
     # Training procedure
     ppo_agent = PPOAgent(
                 state_dim=state_dim,
                 action_dim=action_dim,
+                action_std_init=action_std,
                 net_width=net_width,
                 lr_actor=lr_actor,
                 lr_critic=lr_critic,
                 gamma=gamma,
                 K_epochs=K_epochs,
-                eps_clip=eps_clip,
-                action_std_init=action_std)
+                eps_clip=eps_clip)
+
+    print("Start")
 
     print_running_reward = 0
     print_running_episodes = 0
-    
-    log_running_reward = 0
-    log_running_episodes = 0
-    
+
     time_step = 0
     i_episode = 0
 
-    print("start")
     # Core training loop
     while time_step <= max_training_timesteps:
         state, _ = env.reset()
         current_ep_reward = 0
 
         for t in range(1, max_ep_timesteps+1):
-            # Select action with policy
             action = ppo_agent.select_action(state)
             state, reward, done, _, _ = env.step(action)
 
-            # Saving reward and is_terminals
             ppo_agent.buffer.rewards.append(reward)
             ppo_agent.buffer.is_terminals.append(done)
 
             time_step += 1
             current_ep_reward += reward
 
+            # Model update
             if time_step % update_timestep == 0:
                 ppo_agent.update()
-
+            
+            # Decay action distribution variance
             if time_step % action_std_decay_freq == 0:
                 ppo_agent.decay_action_std(action_std_decay_rate, min_action_std)
 
+            # Logging average reward
             if time_step % print_freq == 0:
                 print_avg_reward = print_running_reward / print_running_episodes
                 print_avg_reward = round(print_avg_reward, 2)
@@ -144,10 +111,9 @@ def train():
                 print_running_episodes = 0
             
             if time_step % save_model_freq == 0:
-                print("--------------------------------------------------------------------------------------------")
-                print(f"saving model at : {ckpt_path}")
+                print(f"Saving model at : {ckpt_path}")
                 ppo_agent.save(ckpt_path)
-                print("model saved")
+                print("Model saved\n")
 
             if done:
                 break
@@ -159,8 +125,7 @@ def train():
         i_episode += 1
 
     env.close()
-
+    print("\nDone")
 
 if __name__ == "__main__":
-    
     train()

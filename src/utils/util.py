@@ -30,6 +30,32 @@ def create_config() -> dict:
     return config
 
 
+def create_ppo_config():
+    env_config = {
+        "env_name"          : "Ant-v4",
+        "max_ep_timesteps"  : 2048,
+    }
+
+    training_config = {
+        "max_training_timesteps"    : int(1e8),
+        "action_std"                : 0.6,
+        "action_std_decay_rate"     : 0.03,
+        "min_action_std"            : 0.1,
+        "action_std_decay_freq"     : int(2.5e5),
+        "eps_clip"                  : 0.2,
+        "gamma"                     : 0.99,
+        "K_epochs"                  : 80
+    }
+
+    network_config = {
+        "lr_actor"  : 0.0003,
+        "lr_critic" : 0.001,
+        "net_width" : 64
+    }
+
+    return env_config, training_config, network_config
+    
+
 @dataclass
 class Config:
     n_episodes = 2000
@@ -236,7 +262,7 @@ def atari_evaluate_agent(env, agent, num=10):
 def create_directory(dir_name):
     try:
         if not os.path.exists(dir_name):
-            print(f"Create {dir_name} direcoty")
+            print(f"Create {dir_name} directory")
             os.makedirs(dir_name)
     except OSError:
         print("Error: Failed to create the directory.")

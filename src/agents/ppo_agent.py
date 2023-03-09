@@ -8,7 +8,6 @@ from src.utils.util import get_device
 
 device = get_device()
 
-
 class ActorCritic(nn.Module):
     def __init__(self, state_dim, action_dim, action_std_init, net_width):
         super(ActorCritic, self).__init__()
@@ -64,14 +63,14 @@ class ActorCritic(nn.Module):
 class PPOAgent:
     def __init__(self, 
                  state_dim, 
-                 action_dim, 
-                 net_width, 
-                 lr_actor, 
-                 lr_critic, 
-                 gamma, 
-                 K_epochs, 
-                 eps_clip, 
-                 action_std_init=0.6):
+                 action_dim,
+                 action_std_init=0.6,
+                 net_width=None, 
+                 lr_actor=None, 
+                 lr_critic=None, 
+                 gamma=None, 
+                 K_epochs=None, 
+                 eps_clip=None):
         
         self.action_std = action_std_init
         self.gamma = gamma
@@ -98,10 +97,8 @@ class PPOAgent:
         self.action_std = round(self.action_std, 4)
         if self.action_std <= min_action_std:
             self.action_std = min_action_std
-            print("="*50)
             print("Setting actor action_std to min_action_std : ", self.action_std)
         else:
-            print("="*50)
             print("Setting actor action_std to : ", self.action_std)
         self.set_action_std(self.action_std)
     
@@ -174,5 +171,6 @@ class PPOAgent:
         torch.save(self.policy_old.state_dict(), ckpt_path)
 
     def load(self, ckpt_path):
-        self.policy_old.load_state_dict(torch.load(ckpt_path, map_location=lambda storage, loc: storage))
-        self.policy.load_state_dict(torch.load(ckpt_path, map_location=lambda storage, loc: storage))
+        self.policy_old.load_state_dict(torch.load(ckpt_path, map_location=device))
+        self.policy.load_state_dict(torch.load(ckpt_path, map_location=device))
+        print("Loaded state_dict")
