@@ -73,7 +73,7 @@ export PYTHONPATH="/Users/jindaejong/2023-RL-Seminar:$PYTHONPATH"
 
 ## Usage
 
-1. Train RL model for each environment
+1. Train RL model for gymnasium environment you want
    
     ```bash
     $ cd tests
