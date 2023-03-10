@@ -13,7 +13,7 @@ It is designed so that you can easily run examples or add algorithms.
 5. [Unifying Count-Based Exploration and Intrinsic Motivation](https://arxiv.org/pdf/1606.01868.pdf)
 6. [Deep Q-learning from Demonstrations](https://arxiv.org/pdf/1704.03732.pdf)
 7. [Trust Region Policy Optimization](https://arxiv.org/pdf/1502.05477.pdf)
-8. [Proximal Policy Optimization Algorithms](https://arxiv.org/pdf/1707.06347.pdf)
+8. [~~Proximal Policy Optimization Algorithms~~](https://arxiv.org/pdf/1707.06347.pdf)
 9. [Continuous control with deep reinforcement learning](https://arxiv.org/pdf/1509.02971.pdf)
 10. [Soft Actor-Critic: Off-Policy Maximum Entropy Deep Reinforcement Learning with a Stochastic Actor](https://arxiv.org/pdf/1801.01290.pdf)
 11. [Addressing Function Approximation Error in Actor-Critic Methods](https://arxiv.org/pdf/1802.09477.pdf)
@@ -37,8 +37,9 @@ $ conda create -n conda_seminar python=3.8
 $ conda activate conda_seminar
 $ pip install gymnasium
 $ conda install pytorch torchvision torchaudio -c pytorch
-$ pip install gymnasium[atari]
-$ pip install gymnasium[accept-rom-license]
+$ pip install "gymnasium[atari]"
+$ pip install "gymnasium[accept-rom-license]"
+$ pip install "gymnasium[mujoco]" 
 ```
 
 - Trouble Shooting
@@ -72,13 +73,17 @@ export PYTHONPATH="/Users/jindaejong/2023-RL-Seminar:$PYTHONPATH"
 
 ## Usage
 
-1. DQN with Cartpole or Atari
+1. Train RL model for gymnasium environment you want
    
     ```bash
     $ cd tests
+    # For DQN in cartpole environment
     $ python 01_DQN_cartpole.py
-    # or
+    # For DQN in Atari environment
     $ python 01_DQN_atari.py
+    # For PPO in Mujoco environment
+    $ python 08_PPO_continuous.py 
+
     ```
     
 2. Evaluate trained agent
@@ -86,19 +91,19 @@ export PYTHONPATH="/Users/jindaejong/2023-RL-Seminar:$PYTHONPATH"
     ```bash
     $ cd tests
     $ python evaluate.py -e CartPole-v1 -a DQN -c tests/result/DQN/cartpole/$(YOUR CHECK POINT NAME)
-    # or
     $ python evaluate.py -e PongNoFrameskip-v4 -a DQN -c tests/result/DQN/atari/$(YOUR CHECK POINT NAME)
-    # If you want to save video, add -s directory name
+    $ python evaluate.py -e Walker2d-v4 -a PPO tests/result/PPO/Walker2d-v4/$(YOUR CHECK POINT NAME)
+
+    # If you want to save video, add -s directory name (not support for mujoco env)
     $ python evaluate.py -e PongNoFrameskip-v4 -a DQN -c tests/result/DQN/atari/$(YOUR CHECK POINT NAME) -s videos
     ```
     
 
 ## Result
-
-- Render video  
+### For Atari environment
+- Pong Render video
 
   ![output](imgs/DQNPerAgent-PongNoFrameskip-v4.gif)
-
 ---
 
 - Total Reward
@@ -112,3 +117,12 @@ export PYTHONPATH="/Users/jindaejong/2023-RL-Seminar:$PYTHONPATH"
 - Loss
 
   ![output](imgs/output1.png)
+
+### For Mujoco environement
+- Walker2d-v4 Render video
+  
+  ![output](imgs/PPO-Walker2d-v4.gif)
+
+- Ant-v4 Render video
+
+  ![output](imgs/PPO-Ant-v4.gif)
