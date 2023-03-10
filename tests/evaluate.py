@@ -29,8 +29,8 @@ def get_args():
         "--environment",
         type=str,
         default="PongNoFrameskip-v4",
-        choices=["PongNoFrameskip-v4", "CartPole-v1", "HalfCheetah-v4", "Walker2d-v4"],
-        help="Choose Environment [PongNoFrameskip-v4, CartPole-v1, HalfCheetah-v4]",
+        choices=["PongNoFrameskip-v4", "CartPole-v1", "HalfCheetah-v4", "Walker2d-v4", "Ant-v4", "LunarLander-v2", "Humanoid-v4"],
+        help="Choose Environment [PongNoFrameskip-v4, CartPole-v1, HalfCheetah-v4, Ant-v4, LunarLander-v2, Humanoid-v4]",
     )
     ap.add_argument(
         "-a",
@@ -122,7 +122,7 @@ if not is_mujoco:
 else:
     test_agent.load(save_model_name)
 
-for i_episode in range(1):
+for i_episode in range(10):
     state, _ = env.reset()
     test_reward = 0
     step_index = 0

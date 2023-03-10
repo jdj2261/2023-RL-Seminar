@@ -32,8 +32,8 @@ def create_config() -> dict:
 
 def create_ppo_config():
     env_config = {
-        "env_name"          : "Ant-v4",
-        "max_ep_timesteps"  : 2048,
+        "env_name"          : "Humanoid-v4",
+        "max_ep_timesteps"  : 1000,
     }
 
     training_config = {
@@ -48,9 +48,9 @@ def create_ppo_config():
     }
 
     network_config = {
-        "lr_actor"  : 0.0003,
-        "lr_critic" : 0.001,
-        "net_width" : 64
+        "lr_actor"  : 0.0002,
+        "lr_critic" : 0.0005,
+        "net_width" : 128
     }
 
     return env_config, training_config, network_config
