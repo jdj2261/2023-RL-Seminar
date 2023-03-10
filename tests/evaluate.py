@@ -2,11 +2,7 @@ import gymnasium as gym
 import torch
 import argparse
 import os
-# from gymnasium.utils.save_video import save_video
-
-import sys
-sys.path.append(os.getcwd() + "/..")
-sys.path.append(os.getcwd())
+from gymnasium.utils.save_video import save_video
 
 current_dir_path = os.path.abspath(os.path.dirname(__file__) + "../")
 from src.utils.util import ShellColor as sc
@@ -29,8 +25,8 @@ def get_args():
         "--environment",
         type=str,
         default="PongNoFrameskip-v4",
-        choices=["PongNoFrameskip-v4", "CartPole-v1", "HalfCheetah-v4", "Walker2d-v4", "Ant-v4", "LunarLander-v2", "Humanoid-v4"],
-        help="Choose Environment [PongNoFrameskip-v4, CartPole-v1, HalfCheetah-v4, Ant-v4, LunarLander-v2, Humanoid-v4]",
+        choices=["PongNoFrameskip-v4", "CartPole-v1", "HalfCheetah-v4", "Walker2d-v4", "Ant-v4"],
+        help="Choose Environment [PongNoFrameskip-v4, CartPole-v1, HalfCheetah-v4, Ant-v4]",
     )
     ap.add_argument(
         "-a",
@@ -60,8 +56,8 @@ else:
     env = gym.make(opt.environment, render_mode="rgb_array_list")
 
 is_atari = False
+# In case of Atari environment
 if "pong" in str(opt.environment).lower():
-    # In case of Atari environment
     env = gym.wrappers.AtariPreprocessing(
         env=env, terminal_on_life_loss=True, grayscale_obs=True, noop_max=0
     )
@@ -102,6 +98,7 @@ if str(opt.agent).upper() == "DDQNPER":
         config=config,
     )
 if str(opt.agent).upper() == "PPO":
+    # PPO algorithm on Mujoco environments
     _, _, network_config = create_ppo_config()
     net_width = network_config["net_width"]
     test_agent = PPOAgent(

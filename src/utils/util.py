@@ -32,13 +32,13 @@ def create_config() -> dict:
 
 def create_ppo_config():
     env_config = {
-        "env_name"          : "Humanoid-v4",
+        "env_name"          : "Walker2d-v4",
         "max_ep_timesteps"  : 1000,
     }
 
     training_config = {
-        "max_training_timesteps"    : int(1e8),
-        "action_std"                : 0.6,
+        "max_training_timesteps"    : int(1e9),
+        "action_std"                : 1.0,
         "action_std_decay_rate"     : 0.03,
         "min_action_std"            : 0.1,
         "action_std_decay_freq"     : int(2.5e5),
@@ -50,7 +50,7 @@ def create_ppo_config():
     network_config = {
         "lr_actor"  : 0.0002,
         "lr_critic" : 0.0005,
-        "net_width" : 128
+        "net_width" : 64
     }
 
     return env_config, training_config, network_config

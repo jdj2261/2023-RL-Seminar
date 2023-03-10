@@ -2,11 +2,11 @@ import torch
 import torch.nn as nn
 from torch.distributions import MultivariateNormal
 
-from src.agents.base_agent import Agent
 from src.commons.memory.rollout_buffer import RolloutBuffer
 from src.utils.util import get_device
 
 device = get_device()
+
 
 class ActorCritic(nn.Module):
     def __init__(self, state_dim, action_dim, action_std_init, net_width):

@@ -2,45 +2,47 @@ import os
 import gymnasium as gym
 import torch
 
-import sys
-sys.path.append(os.getcwd() + "/..")
-sys.path.append(os.getcwd())
-
 from src.agents.ppo_agent import PPOAgent
 from src.utils.util import create_ppo_config, get_current_time_string
 
 
 def train():
+    """
+    Train PPO for mujoco environment
+        - Actor Critic agent is in src.agents.ppo_agent
+        - Environment config is in src.utils.util.create_ppo_config
+    """
+
     # Print current device
-    device_name = torch.cuda.get_device_name() if torch.cuda.is_available() else "cpu"
+    device_name = torch.cuda.get_device_name() if torch.cuda.is_available() else "CPU"
     print(f"Device set to : {device_name}\n")
     
     env_config, training_config, network_config = create_ppo_config()
 
     # Get environment setting
-    env_name = env_config["env_name"]
-    max_ep_timesteps = env_config["max_ep_timesteps"]
+    env_name            = env_config["env_name"]
+    max_ep_timesteps    = env_config["max_ep_timesteps"]
 
     # Get training setting
-    max_training_timesteps = training_config["max_training_timesteps"]
-    action_std = training_config["action_std"]
-    action_std_decay_rate = training_config["action_std_decay_rate"]
-    min_action_std = training_config["min_action_std"]
-    action_std_decay_freq = training_config["action_std_decay_freq"]
-    update_timestep = max_ep_timesteps * 4
-    eps_clip = training_config["eps_clip"]
-    gamma = training_config["gamma"]
-    K_epochs = training_config["K_epochs"]
+    max_training_timesteps  = training_config["max_training_timesteps"]
+    action_std              = training_config["action_std"]
+    action_std_decay_rate   = training_config["action_std_decay_rate"]
+    min_action_std          = training_config["min_action_std"]
+    action_std_decay_freq   = training_config["action_std_decay_freq"]
+    update_timestep         = max_ep_timesteps * 4
+    eps_clip                = training_config["eps_clip"]
+    gamma                   = training_config["gamma"]
+    K_epochs                = training_config["K_epochs"]
 
     # Get network setting
-    lr_actor = network_config["lr_actor"]
-    lr_critic = network_config["lr_critic"]
-    net_width = network_config["net_width"]
+    lr_actor    = network_config["lr_actor"]
+    lr_critic   = network_config["lr_critic"]
+    net_width   = network_config["net_width"]
     
     # Get additional setting
-    print_freq = max_ep_timesteps * 10
+    print_freq      = max_ep_timesteps * 10
     save_model_freq = int(1e5)
-    random_seed = 0
+    random_seed     = 0
 
     # Initialize environment
     env = gym.make(env_name)
@@ -51,6 +53,7 @@ def train():
     print(f"State space dimension : {state_dim}")
     print(f"Action space dimension : {action_dim}")
     print(f"Maximum episode time step : {max_ep_timesteps}")
+
     # Create pretrained model checkpoint directory
     pretrained_dir = os.path.join(os.getcwd(), "tests", "result", "PPO", f"{env_name}")
     os.makedirs(pretrained_dir, exist_ok=True)
@@ -83,6 +86,7 @@ def train():
         current_ep_reward = 0
 
         for t in range(1, max_ep_timesteps+1):
+            # Step repeatly in environment
             action = ppo_agent.select_action(state)
             state, reward, done, _, _ = env.step(action)
 
