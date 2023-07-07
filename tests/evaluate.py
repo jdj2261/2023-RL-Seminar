@@ -25,16 +25,16 @@ def get_args():
         "--environment",
         type=str,
         default="PongNoFrameskip-v4",
-        choices=["PongNoFrameskip-v4", "CartPole-v1", "HalfCheetah-v4", "Walker2d-v4", "Ant-v4"],
-        help="Choose Environment [PongNoFrameskip-v4, CartPole-v1, HalfCheetah-v4, Ant-v4]",
+        choices=["PongNoFrameskip-v4", "BreakoutNoFrameskip-v4", "CartPole-v1", "HalfCheetah-v4", "Walker2d-v4", "Ant-v4"],
+        help="Choose Environment [PongNoFrameskip-v4, BreakoutNoFrameskip-v4, CartPole-v1, HalfCheetah-v4, Ant-v4]",
     )
     ap.add_argument(
         "-a",
         "--agent",
         type=str,
         default="DQN",
-        choices=["DQN", "DQNPER", "DDQN", "DDQNPER", "PPO"],
-        help="Choose Agent [DQN, DQNPER, DDQN, DDQNPER, PPO]",
+        choices=["DQN", "DQNPER", "DDQN", "DUELDQN", "DDQNPER", "PPO"],
+        help="Choose Agent [DQN, DQNPER, DDQN, DUELDQN, DDQNPER, PPO]",
     )
     ap.add_argument("-c", "--checkpoint", type=str, required=True, help="Checkpoint for agent")
     ap.add_argument(
@@ -56,8 +56,16 @@ else:
     env = gym.make(opt.environment, render_mode="rgb_array_list")
 
 is_atari = False
+is_mujoco = False
+
 # In case of Atari environment
 if "pong" in str(opt.environment).lower():
+    env = gym.wrappers.AtariPreprocessing(
+        env=env, terminal_on_life_loss=True, grayscale_obs=True, noop_max=0
+    )
+    env = gym.wrappers.FrameStack(env, num_stack=4)
+    is_atari = True
+elif "breakout" in str(opt.environment).lower():
     env = gym.wrappers.AtariPreprocessing(
         env=env, terminal_on_life_loss=True, grayscale_obs=True, noop_max=0
     )
@@ -85,6 +93,13 @@ if str(opt.agent).upper() == "DQNPER":
     print(test_agent.config)
 if str(opt.agent).upper() == "DDQN":
     test_agent = DDQNAgent(
+        obs_space_shape=env.observation_space.shape,
+        action_space_dims=env.action_space.n,
+        is_atari=is_atari,
+        config=config,
+    )
+if str(opt.agent).upper() == "DUELDQN":
+    test_agent = DuelingDQNAgent(
         obs_space_shape=env.observation_space.shape,
         action_space_dims=env.action_space.n,
         is_atari=is_atari,

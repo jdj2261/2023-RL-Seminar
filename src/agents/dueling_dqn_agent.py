@@ -6,6 +6,7 @@ import random
 
 from src.agents.base_agent import Agent
 from src.commons.memory import ReplayMemory
+from src.commons.model import Dueling_CNNModel, Model
 
 
 class DuelingDQNAgent(Agent):
@@ -18,7 +19,7 @@ class DuelingDQNAgent(Agent):
     ) -> None:
         super().__init__(obs_space_shape, action_space_dims, config)
 
-        self.target_network, self.policy_network = super()._get_q_models(
+        self.target_network, self.policy_network = self.get_q_models(
             obs_space_shape, action_space_dims, self.config.device, is_atari
         )
         self.update_target_network()
@@ -45,8 +46,30 @@ class DuelingDQNAgent(Agent):
     def store_transition(self, state, action, reward, next_state, done) -> None:
         self.memory.store(state, action, reward, next_state, done)
 
+
     def update(self):
-        pass
+        states, actions, rewards, next_states, dones = self.memory.sample(self.config.batch_size)
+
+        states = torch.from_numpy(np.array(states)).float().to(self.config.device)
+        actions = torch.from_numpy(actions).long().to(self.config.device).reshape(-1, 1)
+        rewards = torch.from_numpy(rewards).float().to(self.config.device).reshape(-1, 1)
+        next_states = torch.from_numpy(np.array(next_states)).float().to(self.config.device)
+        dones = torch.from_numpy(dones).float().to(self.config.device).reshape(-1, 1)
+
+        cur_q_values = self.policy_network(states).gather(1, actions)
+        with torch.no_grad():
+            next_q_values = self.target_network(next_states).detach()
+            max_next_q_values, _ = next_q_values.max(1)
+            target_q_values = rewards + (1 - dones) * self.config.gamma * max_next_q_values.view(
+                self.config.batch_size, -1
+            )
+
+        loss = self.loss_fn(cur_q_values, target_q_values)
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
+
+        return loss.detach().cpu().numpy()
 
     def soft_update_target_network(self):
         for target_param, policy_param in zip(
@@ -58,3 +81,17 @@ class DuelingDQNAgent(Agent):
 
     def update_target_network(self):
         self.target_network.load_state_dict(self.policy_network.state_dict())
+
+    def get_q_models(self, obs_space_shape, action_space_dims, device, is_atari):
+        if not is_atari:
+            target_network = Model(obs_space_shape, action_space_dims).to(device)
+            policy_network = Model(obs_space_shape, action_space_dims).to(device)
+        else:
+            target_network = Dueling_CNNModel(obs_space_shape, action_space_dims).to(
+                device, non_blocking=True
+            )
+            policy_network = Dueling_CNNModel(obs_space_shape, action_space_dims).to(
+                device, non_blocking=True
+            )
+
+        return target_network, policy_network
