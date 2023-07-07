@@ -9,7 +9,7 @@ It is designed so that you can easily run examples or add algorithms.
 1. [~~Human-level control through deep reinforcement learning~~](https://web.stanford.edu/class/psych209/Readings/MnihEtAlHassibis15NatureControlDeepRL.pdf)
 2. [~~Prioritized Experience Replay~~](https://arxiv.org/pdf/1511.05952.pdf)
 3. [~~Deep reinforcement learning with double q-learning~~](https://arxiv.org/pdf/1509.06461.pdf)
-4. [Dueling Network Architectures for Deep Reinforcement Learning](https://arxiv.org/pdf/1511.06581.pdf)
+4. [~~Dueling Network Architectures for Deep Reinforcement Learning~~](https://arxiv.org/pdf/1511.06581.pdf)
 5. [Unifying Count-Based Exploration and Intrinsic Motivation](https://arxiv.org/pdf/1606.01868.pdf)
 6. [Deep Q-learning from Demonstrations](https://arxiv.org/pdf/1704.03732.pdf)
 7. [Trust Region Policy Optimization](https://arxiv.org/pdf/1502.05477.pdf)
