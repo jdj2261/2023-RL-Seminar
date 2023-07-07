@@ -1,1 +1,1 @@
-from .model import CNNModel, Model
+from .model import CNNModel, Model, Dueling_CNNModel
